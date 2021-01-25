@@ -1,9 +1,11 @@
+*.yml
+*.mp4
 **/.pio
 */.pio/*
 !.pio/build/nanoatmega328new/firmware.hex
 !.pio/build/nanoatmega328/firmware.hex
-*/.vscode
-*/.vscode/*
+**/.vscode
+**/.vscode/*
 **/.pioenvs
 **/.piolibdeps
 **/.clang_complete
