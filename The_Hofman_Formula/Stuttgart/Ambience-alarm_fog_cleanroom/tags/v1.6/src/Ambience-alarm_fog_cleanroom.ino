@@ -1,6 +1,6 @@
 /*==========================================================================================================*/
 /*		2CP - TeamEscape - Engineering
- *		by Abdullah Saei & Robert Schloezer
+ *		by Martin Pek &Abdullah Saei & Robert Schloezer
  *
  *		v1.5
  *		- Last Changes 08.07.2019
