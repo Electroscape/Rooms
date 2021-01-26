@@ -7,7 +7,7 @@
 import subprocess
 
 
-video_process = subprocess.Popen(['/usr/bin/cvlc', 'rtsp://TeamEscape:EscapeS2016@192.168.178.27:88/videoMain',
+video_process = subprocess.Popen(['/usr/bin/cvlc', 'rtsp://TeamEscape:****@192.168.**.**:88/videoMain',
                                   "--no-embedded-video", "--fullscreen", '--no-video-title'],
                                  shell=False)
 

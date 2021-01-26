@@ -4,7 +4,7 @@
 # vlc /home/pi/hofman/180813_Strukturformel_Video16zu9.wmv --loop --fullscreen
 
 # Starte Stream
-sudo omxplayer rtsp://TeamEscape:EscapeS2016@192.168.178.27:88/videoMain -b -o hdmi -r &
+sudo omxplayer rtsp://TeamEscape:****@192.168.**.**:88/videoMain -b -o hdmi -r &
 python3 /home/pi/STB-1/HF_Videotrigger/listenToGPIO.py
 
 # Display Riddle Photo

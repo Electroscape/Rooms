@@ -3,10 +3,11 @@
         Author Martin Pek
 
         changelog
-        v0.1
+        v0.2 
+		- Added LED clrs
 
         Todo:
-        -hello!
+        
 */
 
 /**************************************************************************/
