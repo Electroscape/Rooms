@@ -12,6 +12,9 @@
 */
 
 /**************************************************************************/
+//Setting Configurations
+#include "header.h"
+
 // I2C Port Expander
 #include "PCF8574.h"
 #include <Wire.h>
@@ -19,12 +22,6 @@
 
 //Watchdog timer
 #include <avr/wdt.h>
-#include "header.h"
-
-String title = "The Gallery";
-String versionDate = "09.09.2020";
-String version = "version 0.2HH";
-const String brainName = String("BrRFID");
 
 #define RELAY_I2C_ADD     	0x3F         // Relay Expander
 #define OLED_I2C_ADD        0x3C         // Predefined by hardware
@@ -32,34 +29,6 @@ const String brainName = String("BrRFID");
 
 // uncomment to use
 #define DEBUGMODE           0
-
-// RELAY
-// PIN
-enum REL_PIN{
-    REL_1_PIN ,                              // 0 Door Opener
-    REL_2_PIN ,                              // 1 Buzzer
-    REL_3_PIN ,                              // 2
-    REL_4_PIN ,                              // 3
-    REL_SCHW_LI_PIN ,                        // 4   Schwarzlicht
-    REL_ROOM_LI_PIN ,                        // 5   ROOM_LI
-    REL_7_PIN ,                              // 6
-    REL_8_PIN                                // 7
-};
-
-#define LIGHT_ON                1
-#define LIGHT_OFF               0
-
-
-enum REL_INIT{
-  REL_1_INIT   =                1,        // COM-12V_IN, NO-12V_OUT, NC-/  set to 1 for magnet, 0 for mechanical
-  REL_2_INIT   =                1,        // COM-12V_IN, NO-12V_OUT_DOOR, NC-12V_OUT_ALARM
-  REL_3_INIT   =                1,        // NC-12V_OUT_ALARM
-  REL_4_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_SCHW_LI_INIT   =          LIGHT_OFF,        // DESCRIPTION OF THE RELAY WIRING
-  REL_ROOM_LI_INIT   =          LIGHT_ON,        // DESCRIPTION OF THE RELAY WIRING
-  REL_7_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_8_INIT   =                1        // COM AC_volt, NO 12_PS+, NC-/
-};
 
 // == constants
 
@@ -111,35 +80,25 @@ const Adafruit_PN532 RFID_1(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[1]);
 const Adafruit_PN532 RFID_2(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[2]);
 const Adafruit_PN532 RFID_3(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[3]);
 
-#define RFID_AMOUNT         4
-#define RFID_SOLUTION_SIZE  3
 Adafruit_PN532 RFID_READERS[4] = {RFID_0, RFID_1, RFID_2, RFID_3}; //
 
 uint8_t keya[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-static char RFID_solutions[4][RFID_SOLUTION_SIZE]  = {"AH", "SD", "GF", "PA"}; //
 char RFID_reads[4][RFID_SOLUTION_SIZE]             = {"\0\0", "\0\0", "\0\0", "\0\0"}; //
 #define RFID_DATABLOCK      1
-int cards_solution[RFID_AMOUNT] = {0, 0, 0, 0}; //0 no card, 1 there is card, 2 correct card
+int cards_solution[RFID_AMOUNT] = {0}; //0 no card, 1 there is card, 2 correct card
 bool runOnce = false;
 bool EndBlock = false;
 bool printStats = true;
 
 //=====Timer=============================/
 unsigned long delayStart = 0; // the time the delay started
-const uint16_t UpdateSignalAfterDelay = 5000;         /* Zeit, bis Serial print als Online Signal			*/
 bool delayRunning = false; // true if still waiting for delay to finish
 
 /*==PCF8574=================================================================================================*/
 Expander_PCF8574 relay;
 
 /*==Serial Printing=================================================================================================*/
-typedef enum{
-	SYSTEM,
-	UPDATE,
-	RESULT,
-}actions;
 const int readPin =  A0;      // the control pin of max485 rs485 LOW read, HIGH write
-char act[][10] = { "system",  "update",  "result"};
 
 /*============================================================================================================
 //===SETUP====================================================================================================
@@ -177,7 +136,7 @@ void setup() {
 
     delayStart = millis();   // start delay
 
-    printWithHeader("Setup Complete", act[SYSTEM]);
+    printWithHeader("Setup Complete", "SYS");
 }
 
 void loop() {
@@ -213,7 +172,7 @@ void loop() {
       EndBlock = true;
       Serial.println("Restart in required!");
       wdt_disable();
-      printWithHeader("Game Complete", act[RESULT]);
+      printWithHeader("Game Complete", "SYS");
 
     }else if (runOnce){}
     else{
@@ -319,7 +278,7 @@ void RFID_loop() {
     uint8_t uidLength;
     uint8_t data[16];
 
-    int cards_present[RFID_AMOUNT] = {0, 0, 0, 0}; //compare with previous card stats to detect card changes
+    int cards_present[RFID_AMOUNT] = {0}; //compare with previous card stats to detect card changes
 
     for (uint8_t reader_nr=0; reader_nr<RFID_AMOUNT; reader_nr++) {
         wdt_reset();
@@ -361,7 +320,7 @@ void RFID_loop() {
         if (cards_solution[reader_nr] != cards_present[reader_nr])
         {   
             cards_solution[reader_nr] = cards_present[reader_nr];
-            printWithHeader("Cards Changed", act[UPDATE]);
+            printWithHeader("Cards Changed", relayCode);
             runOnce = false;
             printStats = true;
         }
@@ -379,23 +338,40 @@ bool RFID_Status(){
       Serial.println();
 	    Serial.print("!");
       Serial.print(brainName);
-	    Serial.print(": , 0 , update , ");
+	    Serial.print(",");
+      Serial.print(relayCode);
+      Serial.print(",");
       bool noZero = true;
       int sum = 0;
+      size_t j; //index for wrong solution card
       for (uint8_t i=0; i < RFID_AMOUNT; i++){
           sum += cards_solution[i];
-          Serial.print("reader ");Serial.print(RFID_solutions[i]);Serial.print(" has ");
           if (cards_solution[i]==2){
-              Serial.print("Correct Card");
+              Serial.print("C");
+              Serial.print(i+1);
           }else if (cards_solution[i]==1){
-              Serial.print(RFID_reads[i]);
+              bool found = false;
+              for ( j = 0; j < RFID_AMOUNT; j++)
+              { 
+                if (strcmp(RFID_solutions[j],RFID_reads[i])==0){
+                    found = true;
+                    break;
+                }
+              }
+              if (found){
+                Serial.print("C");
+                Serial.print(j+1);
+              }
+              else{
+                Serial.print("XX");
+              }
           }else if (cards_solution[i]==0){
               noZero = false;
-              Serial.print("No Card");
+              Serial.print("__");
           }else{
               Serial.print("Unknown Card");
           }
-          Serial.print(" - ");
+          Serial.print(" ");
           delay(5);
       }
 	    Serial.println(", Done.");
@@ -405,13 +381,13 @@ bool RFID_Status(){
 
       //Serial.print("Sum: ");Serial.print(sum);
       
-      if (sum==8)
+      if (sum==2*RFID_AMOUNT)
       { 
-        printWithHeader("Correct Solution", act[RESULT]);
+        printWithHeader("Correct Solution", relayCode);
         return true;}
       else if (noZero)
       {
-        printWithHeader("Wrong Solution", act[RESULT]);
+        printWithHeader("Wrong Solution", relayCode);
         return false;
       }
     }
@@ -430,7 +406,7 @@ void Update_LEDs() {
         }
     }
 
-    if (sum == 8)
+    if (sum == 2*RFID_AMOUNT)
     {   for (size_t i = 0; i < RFID_AMOUNT; i++)
         {
           NeoPixel_StripeOn(i, "green");
@@ -478,7 +454,7 @@ void Update_serial(){
   // check if delay has timed out after UpdateSignalAfterDelay ms
   if ((millis() - delayStart) >= UpdateSignalAfterDelay) {
     delayStart = millis();
-    printWithHeader("refresh", act[SYSTEM]);
+    printWithHeader("refresh","SYS");
     //printStats = true;
   }
 }
@@ -673,27 +649,23 @@ void Serial_Init(){
     // turn Write mode on:
     digitalWrite(readPin, HIGH);
     Serial.println("\n");
-    printWithHeader("Setup Begin", act[SYSTEM]);
+    printWithHeader("Setup Begin", "SYS");
     // turn Write mode off:
     digitalWrite(readPin, LOW);
 }
 
 
-void printWithHeader(const char* message, char* action){
-	static unsigned int count = 0;
+void printWithHeader(String message, String source){
   // turn Write mode on:
   digitalWrite(readPin, HIGH);
 	Serial.println();
 	Serial.print("!");
 	Serial.print(brainName);
-	Serial.print(": , ");
-	Serial.print(count);
-	Serial.print(" , ");
-	Serial.print(action);
-	Serial.print(" , ");
+	Serial.print(",");
+	Serial.print(source);
+	Serial.print(",");
 	Serial.print(message);
-	Serial.println(" , Done.");
-  count++;
+	Serial.println(",Done.");
 	delay(50);
 	// turn Write mode off:
   digitalWrite(readPin, LOW);
