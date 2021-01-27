@@ -320,7 +320,7 @@ void RFID_loop() {
         if (cards_solution[reader_nr] != cards_present[reader_nr])
         {   
             cards_solution[reader_nr] = cards_present[reader_nr];
-            printWithHeader("Cards Changed", relayCode);
+            printWithHeader("Cards Changed", "SYS");
             runOnce = false;
             printStats = true;
         }
