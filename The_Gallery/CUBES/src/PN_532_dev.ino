@@ -5,7 +5,7 @@
         - Modified Serial outputs
         - Optimize initalization delay to smooth restarts.
         - Running version.
-        - Locking after correct solution. 
+        - Locking after correct solution.
 
         Todo:
         - Nothing! working and stable.
@@ -43,10 +43,10 @@ const byte relayInitArray[] = {REL_1_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, R
 #define RFID_1_LED_PIN          9     // Per Konvention ist dies RFID-Port 1                       */
 #define RFID_2_LED_PIN          6     // Per Konvention ist dies RFID-Port 2                       */
 #define RFID_3_LED_PIN          5     // Per Konvention ist dies RFID-Port 3                       */
-#define RFID_4_LED_PIN          3     // Per Konvention ist dies RFID-Port 4  
+#define RFID_4_LED_PIN          3     // Per Konvention ist dies RFID-Port 4
 
 // NeoPixel
-#include <Adafruit_NeoPixel.h>        // Ueber Bibliotheksverwalter  
+#include <Adafruit_NeoPixel.h>        // Ueber Bibliotheksverwalter
 // NeoPixel
 #define NEOPIXEL_NR_OF_PIXELS   1     /* Anzahl der Pixel auf einem Strang (Test 1 Pixel)          */
 #define STRIPE_CNT              4
@@ -140,134 +140,135 @@ void setup() {
 }
 
 void loop() {
-  
-  //send refresh signal every interval of time
-  Update_serial();
 
-  if (!EndBlock){
-    wdt_reset();
-    RFID_loop();
-    Update_LEDs();
-    wdt_reset();
-    //Game Solved
-    if (RFID_Status() && !runOnce){
-      Serial.println("GATE OPEN");
-      Update_LEDs();
-      relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
-      relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
-      // Sometimes green LEDs miss the command then it needs to wait 3 secs to update. 
-      Update_LEDs();
-      delay(1000);
-      Update_LEDs();
-      delay(1000);
-      Update_LEDs();
-      delay(1000);
-      Update_LEDs();
-      relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
-      runOnce = true;
-      wdt_reset();
+    //send refresh signal every interval of time
+    Update_serial();
 
-      //Block the game
-      Serial.println("Waiting for new Game!");
-      EndBlock = true;
-      Serial.println("Restart in required!");
-      wdt_disable();
-      printWithHeader("Game Complete", "SYS");
+    if (!EndBlock){
+        wdt_reset();
+        RFID_loop();
+        Update_LEDs();
+        wdt_reset();
 
-    }else if (runOnce){}
-    else{
-      relay.digitalWrite(REL_ROOM_LI_PIN, REL_ROOM_LI_INIT);
-      relay.digitalWrite(REL_SCHW_LI_PIN, REL_SCHW_LI_INIT);
+        //Game Solved
+        if (RFID_Status() && !runOnce){
+            Serial.println("GATE OPEN");
+            Update_LEDs();
+            relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
+            relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
+            // Sometimes green LEDs miss the command then it needs to wait 3 secs to update.
+            Update_LEDs();
+            delay(1000);
+            Update_LEDs();
+            delay(1000);
+            Update_LEDs();
+            delay(1000);
+            Update_LEDs();
+            relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
+            runOnce = true;
+            wdt_reset();
+
+            //Block the game
+            Serial.println("Waiting for new Game!");
+            EndBlock = true;
+            Serial.println("Restart in required!");
+            wdt_disable();
+            printWithHeader("Game Complete", "SYS");
+
+        } else {
+            relay.digitalWrite(REL_ROOM_LI_PIN, REL_ROOM_LI_INIT);
+            relay.digitalWrite(REL_SCHW_LI_PIN, REL_SCHW_LI_INIT);
+        }
+
+    } else {
+        Update_LEDs();
+        delay(500);
     }
-  } else {
-    Update_LEDs();
-    delay(500);
-  }
-} 
+}
 
 void NeoPixel_StripeOn(byte i, String color_str) {
 
-  uint32_t color;
+    uint32_t color;
 
-  if (color_str == "red") {
-    color = LED_Stripe_1.Color(255,   0,   0); //red
-  } else
-  if (color_str == "green") {
-    color = LED_Stripe_1.Color(  0, 255,   0); //green
-  } else
-  if (color_str == "white") {
-    color = LED_Stripe_1.Color(255, 255,   255); //white
-  } else
-  if (color_str == "gold") {
-    color = LED_Stripe_1.Color(255, 70,   0); //gold
-  } else
-  if (color_str == "black") {
-    color = LED_Stripe_1.Color(0, 0,   0); //black
-  } else
-  {
-    color = LED_Stripe_1.Color(  0,   0,   0); //schwarz
-  }
+    if (color_str == "red") {
+        color = LED_Stripe_1.Color(255,   0,   0); //red
+    } else
+    if (color_str == "green") {
+        color = LED_Stripe_1.Color(  0, 255,   0); //green
+    } else
+    if (color_str == "white") {
+        color = LED_Stripe_1.Color(255, 255,   255); //white
+    } else
+    if (color_str == "gold") {
+        color = LED_Stripe_1.Color(255, 70,   0); //gold
+    } else
+    if (color_str == "black") {
+        color = LED_Stripe_1.Color(0, 0,   0); //black
+    } else
+    {
+        color = LED_Stripe_1.Color(  0,   0,   0); //schwarz
+    }
 
-  if (i == 0) {
-    LED_Stripe_1.setPixelColor(0, color);
-    LED_Stripe_1.show();
-  }
-  if (i == 1) {
-    LED_Stripe_2.setPixelColor(0, color);
-    LED_Stripe_2.show();
-  }
-  if (i == 2) {
-    LED_Stripe_3.setPixelColor(0, color);
-    LED_Stripe_3.show();
-  }
-  if (i == 3) {
-    LED_Stripe_4.setPixelColor(0, color);
-    LED_Stripe_4.show();
-  }
+    if (i == 0) {
+        LED_Stripe_1.setPixelColor(0, color);
+        LED_Stripe_1.show();
+    }
+    if (i == 1) {
+        LED_Stripe_2.setPixelColor(0, color);
+        LED_Stripe_2.show();
+    }
+    if (i == 2) {
+        LED_Stripe_3.setPixelColor(0, color);
+        LED_Stripe_3.show();
+    }
+    if (i == 3) {
+        LED_Stripe_4.setPixelColor(0, color);
+        LED_Stripe_4.show();
+    }
 }
 
 void NeoPixel_StripeOff(byte i) {
 
-  long int color_black = LED_Stripe_1.Color(  0,   0,   0);
+    long int color_black = LED_Stripe_1.Color(  0,   0,   0);
 
-  if (i == 0) {
-    LED_Stripe_1.setPixelColor(0, color_black);
-    LED_Stripe_1.show();
-  }
-  if (i == 1) {
-    LED_Stripe_2.setPixelColor(0, color_black);
-    LED_Stripe_2.show();
-  }
-  if (i == 2) {
-    LED_Stripe_3.setPixelColor(0, color_black);
-    LED_Stripe_3.show();
-  }
-  if (i == 3) {
-    LED_Stripe_4.setPixelColor(0, color_black);
-    LED_Stripe_4.show();
-  }
+    if (i == 0) {
+        LED_Stripe_1.setPixelColor(0, color_black);
+        LED_Stripe_1.show();
+    }
+    if (i == 1) {
+        LED_Stripe_2.setPixelColor(0, color_black);
+        LED_Stripe_2.show();
+    }
+    if (i == 2) {
+        LED_Stripe_3.setPixelColor(0, color_black);
+        LED_Stripe_3.show();
+    }
+    if (i == 3) {
+        LED_Stripe_4.setPixelColor(0, color_black);
+        LED_Stripe_4.show();
+    }
 }
 
 void NeoPixel_StripeEndGame(byte i) {
 
-  long int color_green = LED_Stripe_1.Color(  0,   255,   0);
+    long int color_green = LED_Stripe_1.Color(  0,   255,   0);
 
-  if (i == 0) {
-    LED_Stripe_1.setPixelColor(0, color_green);
-    LED_Stripe_1.show();
-  }
-  if (i == 1) {
-    LED_Stripe_2.setPixelColor(0, color_green);
-    LED_Stripe_2.show();
-  }
-  if (i == 2) {
-    LED_Stripe_3.setPixelColor(0, color_green);
-    LED_Stripe_3.show();
-  }
-  if (i == 3) {
-    LED_Stripe_4.setPixelColor(0, color_green);
-    LED_Stripe_4.show();
-  }
+    if (i == 0) {
+        LED_Stripe_1.setPixelColor(0, color_green);
+        LED_Stripe_1.show();
+    }
+    if (i == 1) {
+        LED_Stripe_2.setPixelColor(0, color_green);
+        LED_Stripe_2.show();
+    }
+    if (i == 2) {
+        LED_Stripe_3.setPixelColor(0, color_green);
+        LED_Stripe_3.show();
+    }
+    if (i == 3) {
+        LED_Stripe_4.setPixelColor(0, color_green);
+        LED_Stripe_4.show();
+    }
 }
 
 // RFID functions
@@ -296,7 +297,7 @@ void RFID_loop() {
             if (!read_PN532(reader_nr, data, uid, uidLength)) {
                 Serial.println("read failed");
                 continue;
-            }else{
+            } else {
                 //Valid card present
                 cards_present[reader_nr] = 1;
 
@@ -311,14 +312,14 @@ void RFID_loop() {
             } else {
                 cards_present[reader_nr] = 2;
             }
+
         } else {
             //Serial.println(" No");
             //cards_present[reader_nr] = 0;
             //Serial.print(cards_present[reader_nr]);Serial.print(cards_solution[reader_nr]);
         }
         //Serial.print(cards_present[reader_nr]);Serial.println(cards_solution[reader_nr]);
-        if (cards_solution[reader_nr] != cards_present[reader_nr])
-        {   
+        if (cards_solution[reader_nr] != cards_present[reader_nr]) {
             cards_solution[reader_nr] = cards_present[reader_nr];
             printWithHeader("Cards Changed", "SYS");
             runOnce = false;
@@ -328,70 +329,67 @@ void RFID_loop() {
     }
 }
 
-bool RFID_Status(){
-    
-    if (printStats){
-      printStats = false;
-      // turn Write mode on:
-      digitalWrite(readPin, HIGH);
-      delay(5);
-      Serial.println();
-	    Serial.print("!");
-      Serial.print(brainName);
-	    Serial.print(",");
-      Serial.print(relayCode);
-      Serial.print(",");
-      bool noZero = true;
-      int sum = 0;
-      size_t j; //index for wrong solution card
-      for (uint8_t i=0; i < RFID_AMOUNT; i++){
-          sum += cards_solution[i];
-          if (cards_solution[i]==2){
-              Serial.print("C");
-              Serial.print(i+1);
-          }else if (cards_solution[i]==1){
-              bool found = false;
-              for ( j = 0; j < RFID_AMOUNT; j++)
-              { 
-                if (strcmp(RFID_solutions[j],RFID_reads[i])==0){
+bool RFID_Status() {
+
+    if !(printStats) {
+        return false;
+    }
+    printStats = false;
+    // turn Write mode on:
+    digitalWrite(readPin, HIGH);
+    delay(5);
+    Serial.println();
+    Serial.print("!");
+    Serial.print(brainName);
+    Serial.print(",");
+    Serial.print(relayCode);
+    Serial.print(",");
+    bool noZero = true;
+    int sum = 0;
+    size_t j; //index for wrong solution card
+    for (uint8_t i=0; i < RFID_AMOUNT; i++) {
+        sum += cards_solution[i];
+        if (cards_solution[i]==2) {
+            Serial.print("C");
+            Serial.print(i+1);
+        } else if (cards_solution[i]==1) {
+            bool found = false;
+            for ( j = 0; j < RFID_AMOUNT; j++) {
+                if (strcmp(RFID_solutions[j],RFID_reads[i])==0) {
                     found = true;
                     break;
                 }
-              }
-              if (found){
+            }
+            if (found) {
                 Serial.print("C");
                 Serial.print(j+1);
-              }
-              else{
+            } else {
                 Serial.print("XX");
-              }
-          }else if (cards_solution[i]==0){
-              noZero = false;
-              Serial.print("__");
-          }else{
-              Serial.print("Unknown Card");
-          }
-          Serial.print(" ");
-          delay(5);
-      }
-	    Serial.println(", Done.");
-      delay(25);
-      // turn Read mode on:
-      digitalWrite(readPin, LOW);
+            }
 
-      //Serial.print("Sum: ");Serial.print(sum);
-      
-      if (sum==2*RFID_AMOUNT)
-      { 
+        } else if (cards_solution[i]==0) {
+            noZero = false;
+            Serial.print("__");
+        } else {
+            Serial.print("Unknown Card");
+        }
+        Serial.print(" ");
+        delay(5);
+    }
+
+    Serial.println(", Done.");
+    delay(25);
+    // turn Read mode on:
+    digitalWrite(readPin, LOW);
+    //Serial.print("Sum: ");Serial.print(sum);
+
+    if (sum==2*RFID_AMOUNT) {
         printWithHeader("Correct Solution", relayCode);
-        return true;}
-      else if (noZero)
-      {
+        return true;
+    } else if (noZero) {
         printWithHeader("Wrong Solution", relayCode);
         return false;
-      }
     }
-    return false;
 }
 
 
@@ -406,25 +404,21 @@ void Update_LEDs() {
         }
     }
 
-    if (sum == 2*RFID_AMOUNT)
-    {   for (size_t i = 0; i < RFID_AMOUNT; i++)
-        {
-          NeoPixel_StripeOn(i, "green");
+    if (sum == 2*RFID_AMOUNT) {
+        for (size_t i = 0; i < RFID_AMOUNT; i++) {
+            NeoPixel_StripeOn(i, "green");
         }
-    }else if (noZero)
-    {    for (size_t i = 0; i < RFID_AMOUNT; i++)
-        {
-          NeoPixel_StripeOn(i, "red");
+    } else if (noZero) {
+        for (size_t i = 0; i < RFID_AMOUNT; i++) {
+            NeoPixel_StripeOn(i, "red");
         }
-    }else
-    {
-         for (size_t i = 0; i < RFID_AMOUNT; i++)
-        {
-        if(cards_solution[i] == 0){
-            NeoPixel_StripeOn(i, "black");
-        }else{
-          NeoPixel_StripeOn(i, "white");
-        }
+    } else {
+        for (size_t i = 0; i < RFID_AMOUNT; i++) {
+            if(cards_solution[i] == 0) {
+                NeoPixel_StripeOn(i, "black");
+            } else {
+                NeoPixel_StripeOn(i, "white");
+            }
         }
     }
 }
@@ -451,12 +445,12 @@ bool read_PN532(int reader_nr, uint8_t *data, uint8_t *uid, uint8_t uidLength) {
 }
 
 void Update_serial(){
-  // check if delay has timed out after UpdateSignalAfterDelay ms
-  if ((millis() - delayStart) >= UpdateSignalAfterDelay) {
-    delayStart = millis();
-    printWithHeader("refresh","SYS");
-    //printStats = true;
-  }
+    // check if delay has timed out after UpdateSignalAfterDelay ms
+    if ((millis() - delayStart) >= UpdateSignalAfterDelay) {
+        delayStart = millis();
+        printWithHeader("refresh","SYS");
+        //printStats = true;
+    }
 }
 
 bool data_correct(int current_reader, uint8_t *data) {
@@ -489,7 +483,7 @@ bool data_correct(int current_reader, uint8_t *data) {
         return false;
     }
 
-    return  result == current_reader; 
+    return  result == current_reader;
 }
 
 /*==FUNCTIONS==================================================================================================*/
@@ -502,47 +496,43 @@ void RFID_dump_byte_array(byte *buffer, byte bufferSize) {
 }
 
 void NeoPixel_Init(byte i) {
-  switch (i)
-  {
-  case 0:
-    LED_Stripe_1.begin();
-    NeoPixel_StripeOn(i, "gold");
-    break;
-  case 1:
-    LED_Stripe_2.begin();
-    NeoPixel_StripeOn(i, "gold");
-    break;
-  case 2:
-    LED_Stripe_3.begin();
-    NeoPixel_StripeOn(i, "gold");
-    break;
-  case 3:
-    LED_Stripe_4.begin();
-    NeoPixel_StripeOn(i, "gold");
-    break;
-  default:
-    break;
-  }
-  delay(100);
+    switch (i) {
+        case 0:
+            LED_Stripe_1.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 1:
+            LED_Stripe_2.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 2:
+            LED_Stripe_3.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 3:
+            LED_Stripe_4.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        default: break;
+    }
+    delay(100);
 }
 
-bool LED_init(){
-  for (size_t i = 0; i < STRIPE_CNT; i++)
-  {
-      NeoPixel_Init(i);
-  }
-  delay(100);
-  for (size_t i = 0; i < STRIPE_CNT; i++)
-  {
-      NeoPixel_StripeOff(i);
-  }
-  return true;
+bool LED_init() {
+    for (size_t i = 0; i < STRIPE_CNT; i++) {
+        NeoPixel_Init(i);
+    }
+    delay(100);
+    for (size_t i = 0; i < STRIPE_CNT; i++) {
+        NeoPixel_StripeOff(i);
+    }
+    return true;
 }
 
 bool RFID_Init() {
     bool success;
     for (int i=0; i<RFID_AMOUNT; i++) {
-            
+
         uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
         uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
@@ -668,7 +658,7 @@ void printWithHeader(String message, String source){
 	Serial.println(",Done.");
 	delay(50);
 	// turn Write mode off:
-  digitalWrite(readPin, LOW);
+    digitalWrite(readPin, LOW);
 }
 
 /*==RESET==================================================================================================*/
