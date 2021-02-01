@@ -112,14 +112,6 @@ Adafruit_PN532 RFID_READERS[4] = {
     RFID_2,
     RFID_3
 }; //Maximum number for reader supported by STB
-uint8_t keya[6] = {
-    0xFF,
-    0xFF,
-    0xFF,
-    0xFF,
-    0xFF,
-    0xFF
-};
 char RFID_reads[4][RFID_SOLUTION_SIZE] = {
     "\0\0",
     "\0\0",
@@ -128,6 +120,9 @@ char RFID_reads[4][RFID_SOLUTION_SIZE] = {
 }; //Empty reads for the beginning 
 
 #define RFID_DATABLOCK 1
+uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+//==Variables==============================/
 int cards_solution[RFID_AMOUNT] = {0}; //0 no card, 1 there is card, 2 correct card
 bool runOnce = false;
 bool EndBlock = false;
@@ -137,16 +132,15 @@ bool printStats = true;
 unsigned long delayStart = 0; // the time the delay started
 bool delayRunning = false; // true if still waiting for delay to finish
 
-/*==PCF8574=================================================================================================*/
+//==PCF8574==============================/
 Expander_PCF8574 relay;
 
-/*==Serial Printing=================================================================================================*/
+//==Serial Printing======================/
 const int readPin = A0; // the control pin of max485 rs485 LOW read, HIGH write
 
-/*============================================================================================================
-//===SETUP====================================================================================================
-//==========================================================================================================*/
-
+/*======================================
+//===SETUP==============================
+//====================================*/
 void setup() {
     Serial_Init();
     Serial.println("WDT endabled");
@@ -195,6 +189,9 @@ void setup() {
     printWithHeader("Setup Complete", "SYS");
 }
 
+/*======================================
+//===LOOP==============================
+//====================================*/
 void loop() {
     //send refresh signal every interval of time
     Update_serial();
@@ -238,7 +235,13 @@ void loop() {
         delay(500);
     }
 }
-
+/*
+ * Set LED to specific color 
+ * 
+ * @param i byte of LED index
+ *        color_str string color name (red, green, white, gold, black)
+ * @return void
+ */
 void NeoPixel_StripeOn(byte i, String color_str) {
     uint32_t color;
 
@@ -273,7 +276,12 @@ void NeoPixel_StripeOn(byte i, String color_str) {
         LED_Stripe_4.show();
     }
 }
-
+/*
+ * Switch LED off black
+ * 
+ * @param i byte LED index
+ * @return void
+ */
 void NeoPixel_StripeOff(byte i) {
     long int color_black = LED_Stripe_1.Color(0, 0, 0);
 
@@ -294,7 +302,12 @@ void NeoPixel_StripeOff(byte i) {
         LED_Stripe_4.show();
     }
 }
-
+/*
+ * Switch LED to GREEN
+ * 
+ * @param i byte LED index
+ * @return void
+ */
 void NeoPixel_StripeEndGame(byte i) {
     long int color_green = LED_Stripe_1.Color(0, 255, 0);
 
@@ -317,7 +330,12 @@ void NeoPixel_StripeEndGame(byte i) {
 }
 
 // RFID functions
-
+/*
+ * RFID framework read, check and update
+ * 
+ * @param void
+ * @return void
+ */
 void RFID_loop() {
     uint8_t success;
     uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0}; // Buffer to store the returned UID
@@ -372,7 +390,14 @@ void RFID_loop() {
         //delay(1);
     }
 }
-
+/*
+ * Checks and prints the status of the RFIDs  
+ * 
+ * @param void
+ * @return void
+ * @note It prints the header manually! better modify and constuct a string
+ *       then send the string with printwithheader function
+ */
 bool RFID_Status() {
     if (!printStats)
         return false;
@@ -433,7 +458,12 @@ bool RFID_Status() {
         return false;
     }
 }
-
+/*
+ * Upadtes the LEDs with cards present
+ * 
+ * @param void
+ * @return void
+ */
 void Update_LEDs() {
     int sum = 0;
     bool noZero = true;
@@ -463,7 +493,12 @@ void Update_LEDs() {
         }
     }
 }
-
+/*
+ * Reads all readers
+ * 
+ * @param //TODO
+ * @return true if success
+ */
 bool read_PN532(int reader_nr, uint8_t * data, uint8_t * uid, uint8_t uidLength) {
     bool success;
 
@@ -482,7 +517,13 @@ bool read_PN532(int reader_nr, uint8_t * data, uint8_t * uid, uint8_t uidLength)
     }
     return success;
 }
-
+/*
+ * prints refesh message to the serial after delay in UpdateSignalAfterDelay
+ * 
+ * @param void
+ * @return void
+ * @note used as heartbeat check  
+ */
 void Update_serial() {
     // check if delay has timed out after UpdateSignalAfterDelay ms
     if ((millis() - delayStart) >= UpdateSignalAfterDelay) {
@@ -491,13 +532,19 @@ void Update_serial() {
         //printStats = true;
     }
 }
-
+/*
+ * Checks if the solution is correct
+ * 
+ * @param // TODO
+ * @return // TODO
+ */
 bool data_correct(int current_reader, uint8_t * data) {
     uint8_t result = -1;
 
     for (int reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
         for (int i = 0; i < RFID_SOLUTION_SIZE - 1; i++) {
             if (RFID_solutions[reader_nr][i] != data[i]) {
+                // TODO: Unneeded code, should be cleaned!
                 // We still check for the other solutions to show the color
                 // but we display it being the wrong solution of the riddle
                 if (reader_nr == current_reader) {
@@ -525,15 +572,22 @@ bool data_correct(int current_reader, uint8_t * data) {
     return result == current_reader;
 }
 
-/*==FUNCTIONS==================================================================================================*/
-
+//==FUNCTIONS=========================================//
+/*
+ * UNKNOWN NOT USED
+ */
 void RFID_dump_byte_array(byte * buffer, byte bufferSize) {
     for (byte i = 0; i < bufferSize; i++) {
         Serial.print(buffer[i] < 0x10 ? " 0" : " ");
         Serial.print(buffer[i], HEX);
     }
 }
-
+/*
+ * Initialise LEDs library
+ * 
+ * @param i byte LED index
+ * @return void 
+ */
 void NeoPixel_Init(byte i) {
     switch (i) {
     case 0:
@@ -557,7 +611,13 @@ void NeoPixel_Init(byte i) {
     }
     delay(100);
 }
-
+/*
+ * Initialise LEDs and switch them off
+ * 
+ * @param void
+ * @return void
+ * @note uses NeoPixel_Init() function
+ */
 bool LED_init() {
     for (size_t i = 0; i < STRIPE_CNT; i++) {
         NeoPixel_Init(i);
@@ -568,7 +628,13 @@ bool LED_init() {
     }
     return true;
 }
-
+/*
+ * Initialise RFIDs
+ * 
+ * @param void
+ * @return true on success
+ * @note When stuck WTD cause arduino to restart 
+ */
 bool RFID_Init() {
     bool success;
     for (int i = 0; i < RFID_AMOUNT; i++) {
@@ -612,7 +678,13 @@ bool RFID_Init() {
 
     return success;
 }
-
+/*
+ * Prints LOGO and project title
+ * 
+ * @param void
+ * @return void
+ * @note USELESS! 
+ */
 void print_logo_infos(String progTitle) {
     Serial.println(F("+-----------------------------------+"));
     Serial.println(F("|    TeamEscape HH&S ENGINEERING    |"));
@@ -621,7 +693,12 @@ void print_logo_infos(String progTitle) {
     Serial.println(progTitle);
     Serial.println();
 }
-
+/*
+ * Initialise Relays on I2C
+ * 
+ * @param void
+ * @return true when done 
+ */
 bool relay_Init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
@@ -639,7 +716,12 @@ bool relay_Init() {
     Serial.println("successfully initialized relay");
     return true;
 }
-
+/*
+ * Discover devices on I2C bus
+ * 
+ * @param void
+ * @return true when done 
+ */
 bool i2c_scanner() {
     Serial.println(F("I2C scanner:"));
     Serial.println(F("Scanning..."));
@@ -678,21 +760,32 @@ bool i2c_scanner() {
 
     return true;
 }
-
+/*
+ * Initialize I2C, Serial and Arduino Pins
+ * 
+ * @param void
+ * @return void 
+ */
 void Serial_Init() {
     Wire.begin();
     Serial.begin(115200);
     delay(2000);
     // initialize the read pin as an output:
     pinMode(readPin, OUTPUT);
-    // turn Write mode on:
-    digitalWrite(readPin, HIGH);
-    Serial.println("\n");
+    // Test Serial Print
+    Serial.println("\nSETUP\n");
+    // Welcome Print
     printWithHeader("Setup Begin", "SYS");
-    // turn Write mode off:
-    digitalWrite(readPin, LOW);
 }
 
+/*
+ * Prints with the correct format
+ * 
+ * @param message string in the message field,
+ *        source string the message source either relayCode or 'SYS'
+ * @return void 
+ * @note switching pin for MAX485 control Write then Read
+ */
 void printWithHeader(String message, String source) {
     // turn Write mode on:
     digitalWrite(readPin, HIGH);
@@ -709,8 +802,13 @@ void printWithHeader(String message, String source) {
     digitalWrite(readPin, LOW);
 }
 
-/*==RESET==================================================================================================*/
-
+//==RESET====================================//
+/*
+ * To restart the arduino by jumping to address 0x00
+ * 
+ * @param void
+ * @return void 
+ */
 void software_Reset() {
     Serial.println(F("Restarting in"));
     delay(50);
