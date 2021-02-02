@@ -451,12 +451,13 @@ bool RFID_Status() {
     //Serial.print("Sum: ");Serial.print(sum);
 
     if (sum == 2 * RFID_AMOUNT) {
-        printWithHeader("Correct Solution", relayCode);
+        printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
-        printWithHeader("Wrong Solution", relayCode);
+        printWithHeader("!Wrong", relayCode);
         return false;
     }
+    return false;
 }
 /*
  * Upadtes the LEDs with cards present
