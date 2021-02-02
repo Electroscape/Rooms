@@ -7,3 +7,4 @@
 **/.pio/build/nanoatmega328new/*
 !**/.pio/build/nanoatmega328new/firmware.hex
 **/.vscode
+**/.gitignore

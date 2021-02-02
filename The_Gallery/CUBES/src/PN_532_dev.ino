@@ -136,7 +136,7 @@ bool delayRunning = false; // true if still waiting for delay to finish
 Expander_PCF8574 relay;
 
 //==Serial Printing======================/
-const int readPin = A0; // the control pin of max485 rs485 LOW read, HIGH write
+const int ctrlPin = A0; // the control pin of max485 rs485 LOW read, HIGH write
 
 /*======================================
 //===SETUP==============================
@@ -404,7 +404,7 @@ bool RFID_Status() {
 
     printStats = false;
     // turn Write mode on:
-    digitalWrite(readPin, HIGH);
+    digitalWrite(ctrlPin, HIGH);
     delay(5);
     Serial.println();
     Serial.print("!");
@@ -447,7 +447,7 @@ bool RFID_Status() {
     Serial.println(", Done.");
     delay(25);
     // turn Read mode on:
-    digitalWrite(readPin, LOW);
+    digitalWrite(ctrlPin, LOW);
     //Serial.print("Sum: ");Serial.print(sum);
 
     if (sum == 2 * RFID_AMOUNT) {
@@ -771,7 +771,7 @@ void Serial_Init() {
     Serial.begin(115200);
     delay(2000);
     // initialize the read pin as an output:
-    pinMode(readPin, OUTPUT);
+    pinMode(ctrlPin, OUTPUT);
     // Test Serial Print
     Serial.println("\nSETUP\n");
     // Welcome Print
@@ -788,7 +788,7 @@ void Serial_Init() {
  */
 void printWithHeader(String message, String source) {
     // turn Write mode on:
-    digitalWrite(readPin, HIGH);
+    digitalWrite(ctrlPin, HIGH);
     Serial.println();
     Serial.print("!");
     Serial.print(brainName);
@@ -799,7 +799,7 @@ void printWithHeader(String message, String source) {
     Serial.println(",Done.");
     delay(50);
     // turn Write mode off:
-    digitalWrite(readPin, LOW);
+    digitalWrite(ctrlPin, LOW);
 }
 
 //==RESET====================================//

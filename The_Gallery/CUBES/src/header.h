@@ -1,8 +1,8 @@
 #pragma once
 
 String title = "The Gallery";
-String versionDate = "09.09.2020";
-String version = "version 0.2HH";
+String versionDate = "02.02.2021";
+String version = "version 1.0ST";
 String brainName = String("BrRFID");
 String relayCode = String("UVL");
 
