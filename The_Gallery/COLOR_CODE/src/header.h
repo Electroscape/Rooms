@@ -9,13 +9,13 @@ String relayCode = String("HID");
 //==KEYPAD I2C================================/
 const byte KEYPAD_ROWS = 1; 		// Zeilen
 const byte KEYPAD_COLS = 4; 		// Spalten
-const byte KEYPAD_CODE_LENGTH = 10;
+const byte KEYPAD_CODE_LENGTH = 4;  //! create and use guess.len() better practice 
 const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
   {'R','G','B','W'}
 };
 
 // Passwort
-char* sercet_password = (char*)"RGGBWGRBWG";          // Schaltet das Licht im Buero an
+char* sercet_password = (char*)"RGBW";          // Simple sample password
 
 unsigned long KeypadCodeResetSpan = 5000;     // Zeit bis Codereset
 unsigned int KeypadDebounceTime = 50;     // Time for debouncing resolution
