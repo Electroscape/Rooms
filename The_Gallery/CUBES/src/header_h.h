@@ -1,8 +1,8 @@
 #pragma once
 
-String title = "The Gallery";
+String title = "Hamburg Gallery";
 String versionDate = "02.02.2021";
-String version = "version 1.0ST";
+String version = "version 1.0HH";
 String brainName = String("BrRFID");
 String relayCode = String("UVL");
 
@@ -34,7 +34,9 @@ enum REL_INIT{
   REL_8_INIT   =                1        // COM AC_volt, NO 12_PS+, NC-/
 };
 
-#define RFID_AMOUNT         3
+#define RFID_AMOUNT         4
+
+//Cards Data
 #define RFID_SOLUTION_SIZE  3
 static char RFID_solutions[4][RFID_SOLUTION_SIZE]  = {"AH", "SD", "GF", "PA"}; //
 

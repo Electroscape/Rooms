@@ -13,7 +13,7 @@
 
 /**************************************************************************/
 // Setting Configurations
-#include "header.h"
+#include "header_s.h"
 
 // I2C Port Expander
 #include "PCF8574.h"
@@ -403,23 +403,17 @@ bool RFID_Status() {
         return false;
 
     printStats = false;
-    // turn Write mode on:
-    digitalWrite(ctrlPin, HIGH);
-    delay(5);
-    Serial.println();
-    Serial.print("!");
-    Serial.print(brainName);
-    Serial.print(",");
-    Serial.print(relayCode);
-    Serial.print(",");
+    // Struct status message:
+    String msg = "";
+
     bool noZero = true;
     int sum = 0;
     size_t j; //index for wrong solution card
     for (uint8_t i = 0; i < RFID_AMOUNT; i++) {
         sum += cards_solution[i];
         if (cards_solution[i] == 2) {
-            Serial.print("C");
-            Serial.print(i + 1);
+            msg += "C";
+            msg.concat(i + 1);
         } else if (cards_solution[i] == 1) {
             bool found = false;
             for (j = 0; j < RFID_AMOUNT; j++) {
@@ -429,33 +423,27 @@ bool RFID_Status() {
                 }
             }
             if (found) {
-                Serial.print("C");
-                Serial.print(j + 1);
+                msg += "C";
+                msg.concat(j + 1);
             } else {
-                Serial.print("XX");
+                msg += "XX";
             }
         } else if (cards_solution[i] == 0) {
             noZero = false;
-            Serial.print("__");
+            msg += "__";
         } else {
-            Serial.print("Uk");
+            msg += "Uk";
         }
-        Serial.print(" ");
-        delay(5);
+        msg += " ";
     }
 
-    Serial.println(", Done.");
-    delay(25);
-    // turn Read mode on:
-    digitalWrite(ctrlPin, LOW);
-    //Serial.print("Sum: ");Serial.print(sum);
+    printWithHeader(msg, relayCode);
 
     if (sum == 2 * RFID_AMOUNT) {
         printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
         printWithHeader("!Wrong", relayCode);
-        return false;
     }
     return false;
 }
@@ -529,8 +517,7 @@ void Update_serial() {
     // check if delay has timed out after UpdateSignalAfterDelay ms
     if ((millis() - delayStart) >= UpdateSignalAfterDelay) {
         delayStart = millis();
-        printWithHeader("refresh", "SYS");
-        //printStats = true;
+        printStats = true;
     }
 }
 /*

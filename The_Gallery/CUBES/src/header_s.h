@@ -1,8 +1,8 @@
 #pragma once
 
-String title = "The Gallery";
+String title = "Stuttgart Gallery A/B";
 String versionDate = "02.02.2021";
-String version = "version 1.0HH";
+String version = "version 1.0ST";
 String brainName = String("BrRFID");
 String relayCode = String("UVL");
 
@@ -34,9 +34,11 @@ enum REL_INIT{
   REL_8_INIT   =                1        // COM AC_volt, NO 12_PS+, NC-/
 };
 
-#define RFID_AMOUNT         4
-#define RFID_SOLUTION_SIZE  4
-static char RFID_solutions[4][RFID_SOLUTION_SIZE]  = {"AH", "SD", "GF", "PA"}; //
+#define RFID_AMOUNT         3
+
+//Cards Data
+#define RFID_SOLUTION_SIZE  3 // Length of Char data on NFC tag + char '\n' at the end
+static char RFID_solutions[4][RFID_SOLUTION_SIZE]  = {"AH", "SD", "GF"}; //
 
 
 const uint16_t UpdateSignalAfterDelay = 5000;         /* Zeit, bis Serial print als Online Signal			*/
