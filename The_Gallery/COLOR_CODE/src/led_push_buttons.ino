@@ -1,134 +1,98 @@
-/*==========================================================================================================*/
+/*=======================================================*/
 /*		2CP - TeamEscape - Engineering
  *		by Abdullah Saei & Martin Pek
  *
  *		v2.0 beta
- *      - Separete Header 
+ *      - Use standard relay init
+ *      - Separete Header
  *		- Modified Serial prints
  *		- Use A0 control pin for MAX485
- *		- Restarts automatically after correct code
- *      
+ *
  * TODO:
  * 		- Add Header comments on each function
  * 		- Check deprecations
- * 
+ *
  */
-/*==========================================================================================================*/
-#include "header.h"
+/*=======================================================*/
+#include "header_s.h"
 
-
-/*==INCLUDE=================================================================================================*/
+/*==INCLUDE==============================================*/
 // I2C Port Expander
-#include "PCF8574.h"                  /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
-
-/* Der Klassenname wurde geaendert, da es sonst Namenskonflikte gibt! */
+#include "PCF8574.h"
 
 // OLED
-#include "SSD1306Ascii.h"             /* https://github.com/greiman/SSD1306Ascii                            */
-
-#include "SSD1306AsciiWire.h"         /* https://github.com/greiman/SSD1306Ascii                            */
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiWire.h"
 
 // Keypad
-#include <Wire.h>                     /* Standardbibliothek                                                 */
+#include <Keypad.h>
+#include <Keypad_I2C.h>
+#include <Wire.h>
 
-#include <Keypad.h>                   /* Standardbibliothek                                                 */
+// Password
+#include <Password.h>
 
-#include <Keypad_I2C.h>               /*                                                                    */
+/*==DEFINE====================================*/
+// uncomment to use
+#define DEBUGMODE 0
 
-#include <Password.h>                 /* http://www.arduino.cc/playground/uploads/Code/Password.zip
+#define REL_AMOUNT 8
 
-Muss modifiziert werden:
-    Password.h -> char guess[MAX_PASSWORD_LENGTH];
-und byte currentIndex;
-muessen PUBLIC sein * /
-
-/*==DEFINE==================================================================================================*/
-
-/*==OLED====================================================================================================*/
+/*==OLED======================================*/
 SSD1306AsciiWire oled;
 bool UpdateOLED = true;
 unsigned long UpdateOLEDAfterDelayTimer = 0;
 String magnetString = String("ON");
 
-//Konfiguration fuer Sparkfun-Keypads
+// Konfiguration fuer Sparkfun-Keypads
 // Keypad 1 2 3 4 5 6 7
 // Chip   0 1 2 3 4 5 6
-byte KeypadRowPins[KEYPAD_ROWS] = {
-    4
-}; // Zeilen  - Messleitungen
-byte KeypadColPins[KEYPAD_COLS] = {
-    0,
-    1,
-    2,
-    3
-}; // Spalten - Steuerleitungen (abwechselnd HIGH)
+byte KeypadRowPins[KEYPAD_ROWS] = {4};           // Zeilen  - Messleitungen
+byte KeypadColPins[KEYPAD_COLS] = {0, 1, 2, 3};  // Spalten - Steuerleitungen (abwechselnd HIGH)
 
 bool KeypadTyping = false;
 bool KeypadCodeCorrect = false;
 bool KeypadCodeWrong = false;
-bool LightOffice = false; // Wenn true, Deckenlicht an -> Laengere Codeeingabe moeglich (Exit)
-unsigned long KeypadCodeResetTimer = 0; // ResetTimer
-const int KeypadWaitAfterCodeInput = 500; //warten, wie lang der Code noch angezeigt wird, bis er ausgewertet wird
+bool LightOffice = false;                  // Wenn true, Deckenlicht an -> Längere Codeeingabe möglich (Exit)
+unsigned long KeypadCodeResetTimer = 0;    // ResetTimer
+const int KeypadWaitAfterCodeInput = 500;  // warten, wie lang der Code noch angezeigt wird, bis er ausgewertet wird
 
-Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
-Password passLight = Password(sercet_password); // Schaltet das Licht im Buero an
+Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins,
+                    KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
+Password passLight = Password(secret_password);  // Schaltet das Licht im Büro an
 
-/*==PCF8574=================================================================================================*/
+/*==PCF8574===================================*/
 Expander_PCF8574 relay, LetKeypadWork;
 
-/*==Serial Printing=================================================================================================*/
-const int ctrlPin = A0; // the control pin of max485 rs485 LOW read, HIGH write
+/*==Serial Printing===========================*/
+const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 
-/*============================================================================================================
-//===SETUP====================================================================================================
-//==========================================================================================================*/
-
+/*================================================
+//===SETUP========================================
+//==============================================*/
 void setup() {
-
     Serial_Init();
     OLED_Init();
     Keypad_Init();
-
-    oled.print(F("Expander "));
-    Serial.println("Expander begin: start");
-    relay.begin(RELAY_I2C_ADD);
-    Serial.println("Expander begin: ok");
-    for (int i = 0; i <= 7; i++) {
-        relay.pinMode(i, OUTPUT);
-        relay.digitalWrite(i, HIGH);
-    }
-    Serial.println("Pins auf HIGH gezogen");
-    delay(2000);
-    relay.digitalWrite(EXP_MAGNET_PIN, LOW); /* Licht-Relais an, damit Licht initial aus.              NC -> Licht an   */
-    Serial.println("Magnet Pin auf LOW gezogen");
-    oled.println(F("ok."));
+    relay_Init();
 
     delay(2000);
     printWithHeader("Setup Complete", "SYS");
 }
 
-/*============================================================================================================
-//===LOOP=====================================================================================================
-//==========================================================================================================*/
-
+/*=================================================
+//===LOOP==========================================
+//===============================================*/
 void loop() {
-
     Keypad_Update();
 
     OLED_Update();
-
 }
 
-/*============================================================================================================
-//===BASICS===================================================================================================
-//==========================================================================================================*/
+/*===============================================
+//===BASICS======================================
+//=============================================*/
 void print_logo_infos(String progTitle) {
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println(F("|    TeamEscape HH&S ENGINEERING    |"));
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println();
-    Serial.println(progTitle);
-    Serial.println();
     oled.clear();
     oled.println();
     oled.println();
@@ -146,7 +110,7 @@ void print_logo_infos(String progTitle) {
     oled.clear();
 }
 
-// I2C Scanner - scannt nach angeschlossenen I2C Geraeten
+// I2C Scanner - scannt nach angeschlossenen I2C Geräten
 void i2c_scanner() {
     Serial.println(F("I2C scanner:"));
     Serial.println(F("Scanning..."));
@@ -198,7 +162,6 @@ void i2c_scanner() {
 
 // Software Reset - Startet den Arduino neu
 void software_Reset() {
-
     printWithHeader("RESTART", "SYS");
     Serial.println("Expander Ports:");
     for (int i = 0; i <= 7; i++) {
@@ -218,37 +181,44 @@ void software_Reset() {
     asm volatile("  jmp 0");
 }
 
+/*
+ * Initialize Serial and MAX485
+ *
+ * @param void
+ * @return void
+ */
 void Serial_Init() {
     Serial.begin(115200);
     delay(1000);
-    // initialize the read pin as an output:
+    // initialize MAX485 ctrl pin as an output
     pinMode(ctrlPin, OUTPUT);
-    // turn Write mode on:
-    digitalWrite(ctrlPin, HIGH);
-    Serial.println("\n");
+    // print with header to set to the correct mode
     printWithHeader("Setup Begin", "SYS");
-    // turn Write mode off:
-    digitalWrite(ctrlPin, LOW);
+    Serial.println("\n");
 }
 
-/*============================================================================================================
-//===OLED=====================================================================================================
-//==========================================================================================================*/
+/*===================================================
+//===OLED============================================
+//=================================================*/
 void OLED_Init() {
     Wire.begin();
 
-    oled.begin( & Adafruit128x64, OLED_I2C_ADD);
+    oled.begin(&Adafruit128x64, OLED_I2C_ADD);
     oled.set400kHz();
     oled.setScroll(true);
     oled.setFont(System5x7);
 
-    //! USELESS SPAM Serial
-	// TODO: Show only on OLED not serial
-    //print_logo_infos(title);
+    print_logo_infos(title);
 
     i2c_scanner();
 }
 
+/*
+ * Update flags and send heartpulse messages
+ *
+ * @param void
+ * @return void
+ */
 void OLED_Update() {
     if ((((millis() - UpdateOLEDAfterDelayTimer) > UpdateOLEDAfterDelay)) && !KeypadTyping) {
         printWithHeader("refresh", "SYS");
@@ -288,7 +258,8 @@ void OLED_homescreen() {
     oled.println(magnetString);
 }
 
-void OLED_keypadscreen() { // ToDo: automatisch zentrieren
+// Update Oled with keypad typing
+void OLED_keypadscreen() {
     oled.clear();
     oled.setFont(Adafruit5x7);
     oled.println();
@@ -300,7 +271,6 @@ void OLED_keypadscreen() { // ToDo: automatisch zentrieren
         oled.print(passLight.guess[i]);
         oled.print(F(" "));
     }
-
 }
 
 void OLED_smileySmile() {
@@ -346,9 +316,16 @@ void OLED_textWrong() {
     oled.println(F("      FALSCH :("));
 }
 
-/*=================================================================================================
-//===KEYPAD========================================================================================
-//===============================================================================================*/
+/*=========================================================
+//===KEYPAD================================================
+//=======================================================*/
+/*
+ * Initialize Keypad
+ *
+ * @param void
+ * @return void
+ * @note set PCF to high input to activate Pull-up resistors first, then initialize keypad library
+ */
 void Keypad_Init() {
     LetKeypadWork.begin(KEYPAD_I2C_ADD);
     for (int i = 0; i <= 7; i++) {
@@ -357,67 +334,105 @@ void Keypad_Init() {
     }
     delay(100);
     oled.print(F("Keypad "));
-    MyKeypad.addEventListener(keypadEvent); // Event Listener erstellen
+    MyKeypad.addEventListener(keypadEvent);  // Event Listener erstellen
     MyKeypad.begin(makeKeymap(KeypadKeys));
     MyKeypad.setHoldTime(5000);
     MyKeypad.setDebounceTime(KeypadDebounceTime);
     oled.println(F("ok."));
 }
 
+/*
+ * Clear password after TIMEOUT and auto-evaluate when reaches password length
+ *
+ * @param void
+ * @return void
+ */
 void Keypad_Update() {
     MyKeypad.getKey();
     if ((millis() - KeypadCodeResetTimer > KeypadCodeResetSpan) && KeypadTyping) {
         printWithHeader("!Reset", relayCode);
         oled.clear();
-        oled.println("Resette Passwort");
+        oled.println("Reset Passwort");
         passwordReset();
     }
 
-    if (strlen((passLight.guess)) == KEYPAD_CODE_LENGTH && !LightOffice) {
+    if (strlen((passLight.guess)) == strlen(secret_password) && !LightOffice) {
         UpdateOLED = true;
         OLED_Update();
+        // Display last character for some time
         delay(KeypadWaitAfterCodeInput);
         checkPassword();
     }
 }
 
+/*
+ * Listens to keypad inputs
+ *
+ * @param eKey Stores the pressed button
+ * @return void
+ */
 void keypadEvent(KeypadEvent eKey) {
     switch (MyKeypad.getState()) {
-    case PRESSED:
+        case PRESSED:
 
-        Serial.print("Pressed: ");
-        Serial.println(eKey);
-        KeypadTyping = true;
-        UpdateOLED = true;
-        KeypadCodeResetTimer = millis();
+            Serial.print("Pressed: ");
+            Serial.println(eKey);
+            KeypadTyping = true;
+            UpdateOLED = true;
+            KeypadCodeResetTimer = millis();
 
-        switch (eKey) {
+            switch (eKey) {
+                default:
+                    passLight.append(eKey);
+                    printWithHeader(passLight.guess, relayCode);
+                    break;
+            }
+            break;
+
+        case HOLD:
+            Serial.print("HOLD: ");
+            Serial.println(eKey);
+            switch (eKey) {
+                case 'L':  // software_Reset();
+                    break;
+            }
+            break;
+
         default:
-            passLight.append(eKey);
-            printWithHeader(passLight.guess, relayCode);
             break;
-        }
-        break;
-
-    case HOLD:
-        Serial.print("HOLD: ");
-        Serial.println(eKey);
-        switch (eKey) {
-        case 'L': //software_Reset();
-            break;
-        }
-        break;
-
-    default:
-        break;
     }
 }
+
+/*
+ * Initialise Relays on I2C
+ * 
+ * @param void
+ * @return true when done 
+ */
+bool relay_Init() {
+    Serial.println("initializing relay");
+    relay.begin(RELAY_I2C_ADD);
+
+    for (int i = 0; i < REL_AMOUNT; i++) {
+        relay.pinMode(relayPinArray[i], OUTPUT);
+        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
+        Serial.print("     ");
+        Serial.print("Relay [");
+        Serial.print(relayPinArray[i]);
+        Serial.print("] set to ");
+        Serial.println(relayInitArray[i]);
+    }
+    Serial.println();
+    Serial.println("successfully initialized relay");
+    return true;
+}
+
 /*
  * Prints with the correct format
- * 
+ *
  * @param message string in the message field,
  *        source string the message source either relayCode or 'SYS'
- * @return void 
+ * @return void
  * @note switching pin for MAX485 control Write then Read
  */
 void printWithHeader(String message, String source) {
@@ -436,6 +451,14 @@ void printWithHeader(String message, String source) {
     digitalWrite(ctrlPin, LOW);
 }
 
+/*
+ * Evaluates guessed password
+ *
+ * @param void
+ * @return void
+ * TODO: It should only evaluate and return true or false!!
+ * @note it takes the action and sets the relay 
+ */
 void checkPassword() {
     if (passLight.evaluate()) {
         KeypadCodeCorrect = true;
@@ -444,7 +467,7 @@ void checkPassword() {
         LightOffice = true;
 
         printWithHeader("!Correct", relayCode);
-        relay.digitalWrite(EXP_MAGNET_PIN, HIGH);
+        relay.digitalWrite(REL_MAGNET_PIN, MAGNET_OPEN);
         magnetString = String("OFF");
         passwordReset();
     } else {
@@ -457,6 +480,12 @@ void checkPassword() {
     }
 }
 
+/*
+ * Clear password guess
+ *
+ * @param void
+ * @return void
+ */
 void passwordReset() {
     KeypadTyping = false;
     UpdateOLED = true;

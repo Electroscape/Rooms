@@ -3,7 +3,7 @@
         Author Martin Pek & Abdullah Saei
 
         - Modified Serial outputs
-        - Optimize initalization delay to smooth restarts.
+        - Optimize initialization delay to smooth restarts.
         - Running version.
         - Locking after correct solution.
 
@@ -16,57 +16,30 @@
 #include "header_s.h"
 
 // I2C Port Expander
-#include "PCF8574.h"
-
+#include <SPI.h>
 #include <Wire.h>
 
-#include <SPI.h>
+#include "PCF8574.h"
 
 // Watchdog timer
 #include <avr/wdt.h>
 
-#define LCD_I2C_ADD 0x27 // Predefined by hardware
-#define OLED_I2C_ADD 0x3C // Predefined by hardware
-#define RELAY_I2C_ADD 0x3F // Relay Expander
-
 // uncomment to use
 #define DEBUGMODE 0
-
-// == constants
-const enum REL_PIN relayPinArray[] = {
-    REL_1_PIN,
-    REL_2_PIN,
-    REL_3_PIN,
-    REL_4_PIN,
-    REL_SCHW_LI_PIN,
-    REL_ROOM_LI_PIN,
-    REL_7_PIN,
-    REL_8_PIN
-};
-const byte relayInitArray[] = {
-    REL_1_INIT,
-    REL_2_INIT,
-    REL_3_INIT,
-    REL_4_INIT,
-    REL_SCHW_LI_INIT,
-    REL_ROOM_LI_INIT,
-    REL_7_INIT,
-    REL_8_INIT
-};
 
 #define REL_AMOUNT 8
 
 // == LEDS ================================================//
 
-#define RFID_1_LED_PIN 9 // Per Konvention ist dies RFID-Port 1
-#define RFID_2_LED_PIN 6 // Per Konvention ist dies RFID-Port 2
-#define RFID_3_LED_PIN 5 // Per Konvention ist dies RFID-Port 3
-#define RFID_4_LED_PIN 3 // Per Konvention ist dies RFID-Port 4
+#define RFID_1_LED_PIN 9  // Per Konvention ist dies RFID-Port 1
+#define RFID_2_LED_PIN 6  // Per Konvention ist dies RFID-Port 2
+#define RFID_3_LED_PIN 5  // Per Konvention ist dies RFID-Port 3
+#define RFID_4_LED_PIN 3  // Per Konvention ist dies RFID-Port 4
 
 // NeoPixel
-#include <Adafruit_NeoPixel.h> // Ueber Bibliotheksverwalter
- // NeoPixel
-#define NEOPIXEL_NR_OF_PIXELS 1 // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
+#include <Adafruit_NeoPixel.h>   // Ueber Bibliotheksverwalter
+                                 // NeoPixel
+#define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
 #define STRIPE_CNT 4
 
 Adafruit_NeoPixel LED_Stripe_1 = Adafruit_NeoPixel(
@@ -88,19 +61,18 @@ uint8_t gBrightness = 128;
 #define PN532_MOSI 11
 #define PN532_MISO 12
 
-#define RFID_1_SS_PIN 8 // Per Konvention ist dies RFID-Port 1
-#define RFID_2_SS_PIN 7 // Per Konvention ist dies RFID-Port 2                       
-#define RFID_3_SS_PIN 4 // Per Konvention ist dies RFID-Port 3                        
-#define RFID_4_SS_PIN 2 // Per Konvention ist dies RFID-Port 4                      
+#define RFID_1_SS_PIN 8  // Per Konvention ist dies RFID-Port 1
+#define RFID_2_SS_PIN 7  // Per Konvention ist dies RFID-Port 2
+#define RFID_3_SS_PIN 4  // Per Konvention ist dies RFID-Port 3
+#define RFID_4_SS_PIN 2  // Per Konvention ist dies RFID-Port 4
 
 const byte RFID_SSPins[] = {
     RFID_1_SS_PIN,
     RFID_2_SS_PIN,
     RFID_3_SS_PIN,
-    RFID_4_SS_PIN
-};
+    RFID_4_SS_PIN};
 
-// very manual but ... its C its gonna be bitching when it doesnt know during compilte time
+// very manual but ... its C its gonna be bitching when it doesn't know during compile time
 const Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
 const Adafruit_PN532 RFID_1(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[1]);
 const Adafruit_PN532 RFID_2(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[2]);
@@ -110,33 +82,31 @@ Adafruit_PN532 RFID_READERS[4] = {
     RFID_0,
     RFID_1,
     RFID_2,
-    RFID_3
-}; //Maximum number for reader supported by STB
+    RFID_3};  //Maximum number for reader supported by STB
 char RFID_reads[4][RFID_SOLUTION_SIZE] = {
     "\0\0",
     "\0\0",
     "\0\0",
-    "\0\0"
-}; //Empty reads for the beginning 
+    "\0\0"};  //Empty reads for the beginning
 
 #define RFID_DATABLOCK 1
 uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 //==Variables==============================/
-int cards_solution[RFID_AMOUNT] = {0}; //0 no card, 1 there is card, 2 correct card
+int cards_solution[RFID_AMOUNT] = {0};  //0 no card, 1 there is card, 2 correct card
 bool runOnce = false;
 bool EndBlock = false;
 bool printStats = true;
 
 //=====Timer=============================/
-unsigned long delayStart = 0; // the time the delay started
-bool delayRunning = false; // true if still waiting for delay to finish
+unsigned long delayStart = 0;  // the time the delay started
+bool delayRunning = false;     // true if still waiting for delay to finish
 
 //==PCF8574==============================/
 Expander_PCF8574 relay;
 
 //==Serial Printing======================/
-const int ctrlPin = A0; // the control pin of max485 rs485 LOW read, HIGH write
+const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 
 /*======================================
 //===SETUP==============================
@@ -185,7 +155,7 @@ void setup() {
     };
 
     wdt_reset();
-    delayStart = millis(); // start delay
+    delayStart = millis();  // start delay
     printWithHeader("Setup Complete", "SYS");
 }
 
@@ -246,17 +216,17 @@ void NeoPixel_StripeOn(byte i, String color_str) {
     uint32_t color;
 
     if (color_str == "red") {
-        color = LED_Stripe_1.Color(255, 0, 0); //red
+        color = LED_Stripe_1.Color(255, 0, 0);  //red
     } else if (color_str == "green") {
-        color = LED_Stripe_1.Color(0, 255, 0); //green
+        color = LED_Stripe_1.Color(0, 255, 0);  //green
     } else if (color_str == "white") {
-        color = LED_Stripe_1.Color(255, 255, 255); //white
+        color = LED_Stripe_1.Color(255, 255, 255);  //white
     } else if (color_str == "gold") {
-        color = LED_Stripe_1.Color(255, 70, 0); //gold
+        color = LED_Stripe_1.Color(255, 70, 0);  //gold
     } else if (color_str == "black") {
-        color = LED_Stripe_1.Color(0, 0, 0); //black
+        color = LED_Stripe_1.Color(0, 0, 0);  //black
     } else {
-        color = LED_Stripe_1.Color(0, 0, 0); //schwarz
+        color = LED_Stripe_1.Color(0, 0, 0);  //schwarz
     }
 
     if (i == 0) {
@@ -338,21 +308,21 @@ void NeoPixel_StripeEndGame(byte i) {
  */
 void RFID_loop() {
     uint8_t success;
-    uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0}; // Buffer to store the returned UID
+    uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
     uint8_t uidLength;
     uint8_t data[16];
 
-    int cards_present[RFID_AMOUNT] = {0}; //compare with previous card stats to detect card changes
+    int cards_present[RFID_AMOUNT] = {0};  //compare with previous card stats to detect card changes
 
     for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
         wdt_reset();
         //Serial.print("reader ");Serial.print(reader_nr);Serial.print(":");
 
-        success = RFID_READERS[reader_nr].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, & uidLength);
+        success = RFID_READERS[reader_nr].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
         if (success) {
             //Serial.println(" Yes");
 
-            if (uidLength != 4) { //Card is not Mifare classic, discarding card
+            if (uidLength != 4) {  //Card is not Mifare classic, discarding card
                 Serial.println("False Card!");
                 continue;
             }
@@ -366,7 +336,7 @@ void RFID_loop() {
 
                 //Update data
                 data[RFID_SOLUTION_SIZE - 1] = '\0';
-                strncpy(RFID_reads[reader_nr], (char * ) data, RFID_SOLUTION_SIZE);
+                strncpy(RFID_reads[reader_nr], (char*)data, RFID_SOLUTION_SIZE);
             }
 
             if (!data_correct(reader_nr, data)) {
@@ -408,7 +378,7 @@ bool RFID_Status() {
 
     bool noZero = true;
     int sum = 0;
-    size_t j; //index for wrong solution card
+    size_t j;  //index for wrong solution card
     for (uint8_t i = 0; i < RFID_AMOUNT; i++) {
         sum += cards_solution[i];
         if (cards_solution[i] == 2) {
@@ -448,7 +418,7 @@ bool RFID_Status() {
     return false;
 }
 /*
- * Upadtes the LEDs with cards present
+ * Updates the LEDs with cards present
  * 
  * @param void
  * @return void
@@ -488,13 +458,13 @@ void Update_LEDs() {
  * @param //TODO
  * @return true if success
  */
-bool read_PN532(int reader_nr, uint8_t * data, uint8_t * uid, uint8_t uidLength) {
+bool read_PN532(int reader_nr, uint8_t* data, uint8_t* uid, uint8_t uidLength) {
     bool success;
 
     // authentication may be shifted to another function if we need to expand
     success = RFID_READERS[reader_nr].mifareclassic_AuthenticateBlock(uid, uidLength, RFID_DATABLOCK, 0, keya);
     //dbg_println("Trying to authenticate block 4 with default KEYA value");
-    delay(1); //was 100!!
+    delay(1);  //was 100!!
     if (!success) {
         //dbg_println("Authentication failed, card may already be authenticated");
         return false;
@@ -526,7 +496,7 @@ void Update_serial() {
  * @param // TODO
  * @return // TODO
  */
-bool data_correct(int current_reader, uint8_t * data) {
+bool data_correct(int current_reader, uint8_t* data) {
     uint8_t result = -1;
 
     for (int reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
@@ -552,7 +522,7 @@ bool data_correct(int current_reader, uint8_t * data) {
         //Serial.println(" ");
     }
     if (result < 0) {
-        Serial.print((char * ) data);
+        Serial.print((char*)data);
         Serial.println(" = Undefined Card!!!");
         return false;
     }
@@ -564,7 +534,7 @@ bool data_correct(int current_reader, uint8_t * data) {
 /*
  * UNKNOWN NOT USED
  */
-void RFID_dump_byte_array(byte * buffer, byte bufferSize) {
+void RFID_dump_byte_array(byte* buffer, byte bufferSize) {
     for (byte i = 0; i < bufferSize; i++) {
         Serial.print(buffer[i] < 0x10 ? " 0" : " ");
         Serial.print(buffer[i], HEX);
@@ -578,24 +548,24 @@ void RFID_dump_byte_array(byte * buffer, byte bufferSize) {
  */
 void NeoPixel_Init(byte i) {
     switch (i) {
-    case 0:
-        LED_Stripe_1.begin();
-        NeoPixel_StripeOn(i, "gold");
-        break;
-    case 1:
-        LED_Stripe_2.begin();
-        NeoPixel_StripeOn(i, "gold");
-        break;
-    case 2:
-        LED_Stripe_3.begin();
-        NeoPixel_StripeOn(i, "gold");
-        break;
-    case 3:
-        LED_Stripe_4.begin();
-        NeoPixel_StripeOn(i, "gold");
-        break;
-    default:
-        break;
+        case 0:
+            LED_Stripe_1.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 1:
+            LED_Stripe_2.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 2:
+            LED_Stripe_3.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        case 3:
+            LED_Stripe_4.begin();
+            NeoPixel_StripeOn(i, "gold");
+            break;
+        default:
+            break;
     }
     delay(100);
 }
@@ -626,9 +596,8 @@ bool LED_init() {
 bool RFID_Init() {
     bool success;
     for (int i = 0; i < RFID_AMOUNT; i++) {
-
-        uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0}; // Buffer to store the returned UID
-        uint8_t uidLength; // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+        uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
+        uint8_t uidLength;                      // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
         wdt_reset();
 
@@ -659,8 +628,8 @@ bool RFID_Init() {
         }
         // configure board to read RFID tags
         RFID_READERS[i].SAMConfig();
-        delay(1); //was 20!!!
-        success = RFID_READERS[i].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, & uidLength);
+        delay(1);  //was 20!!!
+        success = RFID_READERS[i].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
         //cards_solution[i]= int(success);
     }
 
@@ -776,7 +745,8 @@ void Serial_Init() {
  */
 void printWithHeader(String message, String source) {
     // turn Write mode on:
-    digitalWrite(ctrlPin, HIGH);
+
+    digitalWrite(ctrlPin, MAX485_WRITE);
     Serial.println();
     Serial.print("!");
     Serial.print(brainName);
@@ -787,7 +757,7 @@ void printWithHeader(String message, String source) {
     Serial.println(",Done.");
     delay(50);
     // turn Write mode off:
-    digitalWrite(ctrlPin, LOW);
+    digitalWrite(ctrlPin, MAX485_READ);
 }
 
 //==RESET====================================//
