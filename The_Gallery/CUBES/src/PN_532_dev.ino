@@ -196,6 +196,7 @@ void loop() {
             Serial.println("Restart in required!");
             wdt_disable();
             printWithHeader("Game Complete", "SYS");
+        } else if (runOnce) { // To block it from going to the else and switch the relay
         } else {
             relay.digitalWrite(REL_ROOM_LI_PIN, REL_ROOM_LI_INIT);
             relay.digitalWrite(REL_SCHW_LI_PIN, REL_SCHW_LI_INIT);
