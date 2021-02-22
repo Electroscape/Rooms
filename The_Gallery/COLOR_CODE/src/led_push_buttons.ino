@@ -221,7 +221,7 @@ void OLED_Init() {
  */
 void OLED_Update() {
     if ((((millis() - UpdateOLEDAfterDelayTimer) > UpdateOLEDAfterDelay)) && !KeypadTyping) {
-        printWithHeader("refresh", "SYS");
+        printWithHeader(passLight.guess, relayCode);
         UpdateOLED = true;
     }
 
