@@ -1,7 +1,7 @@
 /*
 * To configure a relay:
 *   - rename REL_X_PIN to informative name
-*   - rename and set REL_X_INIT with your init value 
+*   - rename and set REL_X_INIT with your init value
 */
 #pragma once
 
@@ -20,6 +20,8 @@ String relayCode = String("UVL");
 #define LCD_I2C_ADD 0x27    // Predefined by hardware
 #define OLED_I2C_ADD 0x3C   // Predefined by hardware
 #define RELAY_I2C_ADD 0x3F  // Relay Expander
+
+#define CLR_ORDER NEO_GRB
 
 // RELAY
 enum REL_PIN {
