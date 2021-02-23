@@ -1,7 +1,7 @@
 /*
 * To configure a relay:
 *   - rename REL_X_PIN to informative name
-*   - rename and set REL_X_INIT with your init value 
+*   - rename and set REL_X_INIT with your init value
 */
 #pragma once
 
@@ -18,7 +18,7 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
     {'R', 'G', 'B', 'W'}};
 
 // Passwort
-char* secret_password = (char*)"RGBW";  // Simple sample password
+char* secret_password = (char*)"RGGBWGRBWG";  // Simple sample password
 
 unsigned long KeypadCodeResetSpan = 5000;  // Zeit bis Codereset
 unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
