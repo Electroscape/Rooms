@@ -34,8 +34,11 @@ UV_light_pin = 4
 vid_command = 'omxplayer {0} --loop --no-osd --nodeinterlace --fps 60 &'
 pic_command = 'sudo fbi -a -T 1 --noverbose {0}.jpg &'
 
+UV_LIGHT_ON = GPIO.HIGH
+UV_LIGHT_OFF = GPIO.LOW
+
 GPIO.setup(UV_light_pin, GPIO.OUT)
-GPIO.output(UV_light_pin, GPIO.HIGH) 
+GPIO.output(UV_light_pin, UV_LIGHT_OFF) 
 
 def wait_remove_card(uid):
     while uid:
@@ -91,11 +94,11 @@ def main():
             print('data is: {}'.format(read_data))
 
             if read_data in poisoned_cards:
-                GPIO.output(UV_light_pin, GPIO.LOW) 
+                GPIO.output(UV_light_pin, UV_LIGHT_ON) 
                 print('Poisoned card')
                 os.system(pic_command.format(read_data))
             elif read_data in non_poisoned_cards:
-                GPIO.output(UV_light_pin, GPIO.LOW) 
+                GPIO.output(UV_light_pin, UV_LIGHT_ON) 
                 print('Clean Card')
                 os.system(pic_command.format(read_data))
             else:
@@ -105,10 +108,9 @@ def main():
             wait_remove_card(uid)
             print("Card Removed")
             os.system("sudo pkill fbi")
-            GPIO.output(UV_light_pin, GPIO.HIGH) 
+            GPIO.output(UV_light_pin, UV_LIGHT_OFF) 
             os.system(pic_command.format("default"))
 
 
 if __name__ == "__main__":
     main()
-
