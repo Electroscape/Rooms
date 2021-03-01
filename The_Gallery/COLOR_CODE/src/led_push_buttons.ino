@@ -3,10 +3,10 @@
  *		by Abdullah Saei & Martin Pek
  *
  *		v2.0 beta
+ *      - Block after correct solution
  *      - Use standard relay init
  *      - Separete Header
  *		- Modified Serial prints
- *		- Use A0 control pin for MAX485
  *
  * TODO:
  * 		- Add Header comments on each function
@@ -36,8 +36,6 @@
 // uncomment to use
 #define DEBUGMODE 0
 
-#define REL_AMOUNT 8
-
 /*==OLED======================================*/
 SSD1306AsciiWire oled;
 bool UpdateOLED = true;
@@ -53,7 +51,7 @@ byte KeypadColPins[KEYPAD_COLS] = {0, 1, 2, 3};  // Spalten - Steuerleitungen (a
 bool KeypadTyping = false;
 bool KeypadCodeCorrect = false;
 bool KeypadCodeWrong = false;
-bool LightOffice = false;                  // Wenn true, Deckenlicht an -> Längere Codeeingabe möglich (Exit)
+bool endGame = false;                      // Only true when correct solution after smiley face
 unsigned long KeypadCodeResetTimer = 0;    // ResetTimer
 const int KeypadWaitAfterCodeInput = 500;  // warten, wie lang der Code noch angezeigt wird, bis er ausgewertet wird
 
@@ -87,6 +85,10 @@ void loop() {
     Keypad_Update();
 
     OLED_Update();
+    if (endGame)
+        printWithHeader("Game Ends waiting restart!", "SYS");
+    while (endGame) {
+    }
 }
 
 /*===============================================
@@ -164,6 +166,7 @@ void i2c_scanner() {
 void software_Reset() {
     printWithHeader("RESTART", "SYS");
     Serial.println("Expander Ports:");
+    //? Open all Relays before restart!! is it necessary?
     for (int i = 0; i <= 7; i++) {
         relay.pinMode(i, OUTPUT);
         relay.digitalWrite(i, HIGH);
@@ -236,7 +239,7 @@ void OLED_Update() {
             delay(1000);
             UpdateOLED = true;
             KeypadCodeCorrect = false;
-            software_Reset();
+            endGame = true;
         } else if (KeypadCodeWrong) {
             OLED_smileySad();
             delay(1000);
@@ -356,7 +359,7 @@ void Keypad_Update() {
         passwordReset();
     }
 
-    if (strlen((passLight.guess)) == strlen(secret_password) && !LightOffice) {
+    if (strlen((passLight.guess)) == strlen(secret_password) && !endGame) {
         UpdateOLED = true;
         OLED_Update();
         // Display last character for some time
@@ -374,9 +377,6 @@ void Keypad_Update() {
 void keypadEvent(KeypadEvent eKey) {
     switch (MyKeypad.getState()) {
         case PRESSED:
-
-            Serial.print("Pressed: ");
-            Serial.println(eKey);
             KeypadTyping = true;
             UpdateOLED = true;
             KeypadCodeResetTimer = millis();
@@ -385,6 +385,10 @@ void keypadEvent(KeypadEvent eKey) {
                 default:
                     passLight.append(eKey);
                     printWithHeader(passLight.guess, relayCode);
+                    // Serial print after printing with headers
+                    // so serial buffer is clear
+                    Serial.print("Pressed: ");
+                    Serial.println(eKey);
                     break;
             }
             break;
@@ -392,10 +396,6 @@ void keypadEvent(KeypadEvent eKey) {
         case HOLD:
             Serial.print("HOLD: ");
             Serial.println(eKey);
-            switch (eKey) {
-                case 'L':  // software_Reset();
-                    break;
-            }
             break;
 
         default:
@@ -404,7 +404,7 @@ void keypadEvent(KeypadEvent eKey) {
 }
 
 /*
- * Initialise Relays on I2C
+ * Initialise 8 Relays on I2C PCF
  * 
  * @param void
  * @return true when done 
@@ -413,7 +413,8 @@ bool relay_Init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
 
-    for (int i = 0; i < REL_AMOUNT; i++) {
+    // init all 8,, they are physically disconnected anyways
+    for (int i = 0; i < 8; i++) {
         relay.pinMode(relayPinArray[i], OUTPUT);
         relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
         Serial.print("     ");
@@ -437,7 +438,7 @@ bool relay_Init() {
  */
 void printWithHeader(String message, String source) {
     // turn Write mode on:
-    digitalWrite(ctrlPin, HIGH);
+    digitalWrite(ctrlPin, MAX485_WRITE);
     Serial.println();
     Serial.print("!");
     Serial.print(brainName);
@@ -448,7 +449,7 @@ void printWithHeader(String message, String source) {
     Serial.println(",Done.");
     delay(50);
     // turn Write mode off:
-    digitalWrite(ctrlPin, LOW);
+    digitalWrite(ctrlPin, MAX485_READ);
 }
 
 /*
@@ -456,18 +457,17 @@ void printWithHeader(String message, String source) {
  *
  * @param void
  * @return void
- * TODO: It should only evaluate and return true or false!!
  * @note it takes the action and sets the relay 
+ TODO: It should only evaluate and return true or false!!
  */
 void checkPassword() {
     if (passLight.evaluate()) {
         KeypadCodeCorrect = true;
         KeypadTyping = false;
         UpdateOLED = true;
-        LightOffice = true;
 
         printWithHeader("!Correct", relayCode);
-        relay.digitalWrite(REL_MAGNET_PIN, MAGNET_OPEN);
+        relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
         magnetString = String("OFF");
         passwordReset();
     } else {
