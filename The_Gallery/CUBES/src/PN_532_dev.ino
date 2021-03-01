@@ -362,7 +362,7 @@ void RFID_loop() {
     }
 }
 /*
- * Checks and prints the status of the RFIDs  
+ * Checks and prints the status of the RFID  
  * 
  * @param void
  * @return void
@@ -588,7 +588,7 @@ bool LED_init() {
     return true;
 }
 /*
- * Initialise RFIDs
+ * Initialise RFID
  * 
  * @param void
  * @return true on success

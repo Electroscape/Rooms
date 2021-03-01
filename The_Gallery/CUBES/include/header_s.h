@@ -25,25 +25,24 @@ String relayCode = String("UVL");
 
 // RELAY
 enum REL_PIN {
-    REL_1_PIN,        // 0 First room light
-    REL_2_PIN,        // 1 Exit door
-    REL_3_PIN,        // 2 Secret door
-    REL_4_PIN,        // 3 MAGNET holding the painting
-    REL_SCHW_LI_PIN,  // 4 UV light
-    REL_ROOM_LI_PIN,  // 5 Second room light
-    REL_7_PIN,        // 6 Empty
-    REL_8_PIN         // 7 Peripherals powersupply
+    REL_0_PIN,        // 0 First room light
+    REL_ROOM_LI_PIN,  // 1 Light 2nd room
+    REL_SCHW_LI_PIN,  // 2 UV Light
+    REL_3_PIN,        // 3 Alarm
+    REL_4_PIN,        // 4 Empty
+    REL_5_PIN,        // 5 Fireplace valve
+    REL_6_PIN,        // 6 valve holding the painting
+    REL_7_PIN         // 7 Exit door lock
 };
-
 enum REL_INIT {
-    REL_1_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
-    REL_2_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
+    REL_0_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
+    REL_ROOM_LI_INIT = LIGHT_ON,   // NC = Empty | COM = Light +Ve | NO = 230V
+    REL_SCHW_LI_INIT = LIGHT_OFF,  // NC = Empty | COM = UV +Ve    | NO = 230V
     REL_3_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
     REL_4_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
-    REL_SCHW_LI_INIT = LIGHT_OFF,  // NC = Empty | COM = UV +Ve    | NO = 230V
-    REL_ROOM_LI_INIT = LIGHT_ON,   // NC = Empty | COM = Light +Ve | NO = 230V
-    REL_7_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
-    REL_8_INIT = 1                 // DESCRIPTION OF THE RELAY WIRING
+    REL_5_INIT = 1,                // DESCRIPTION OF THE RELAY WIRING
+    REL_6_INIT = 1,                // NC = Empty | COM = 24V  | NO = Valve
+    REL_7_INIT = 1                 // DESCRIPTION OF THE RELAY WIRING
 };
 
 #define RFID_AMOUNT 3
@@ -56,20 +55,20 @@ const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Onli
 
 // == constants
 const enum REL_PIN relayPinArray[] = {
-    REL_1_PIN,
-    REL_2_PIN,
+    REL_0_PIN,
+    REL_ROOM_LI_PIN,
+    REL_SCHW_LI_PIN,
     REL_3_PIN,
     REL_4_PIN,
-    REL_SCHW_LI_PIN,
-    REL_ROOM_LI_PIN,
-    REL_7_PIN,
-    REL_8_PIN};
+    REL_5_PIN,
+    REL_6_PIN,
+    REL_7_PIN};
 const byte relayInitArray[] = {
-    REL_1_INIT,
-    REL_2_INIT,
+    REL_0_INIT,
+    REL_ROOM_LI_INIT,
+    REL_SCHW_LI_INIT,
     REL_3_INIT,
     REL_4_INIT,
-    REL_SCHW_LI_INIT,
-    REL_ROOM_LI_INIT,
-    REL_7_INIT,
-    REL_8_INIT};
+    REL_5_INIT,
+    REL_6_INIT,
+    REL_7_INIT};
