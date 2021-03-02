@@ -1,0 +1,5 @@
+{
+  "file_name": "platformio.ini",
+  "if folder is empty the script will use the parent folder of this directory": "",
+  "folder": ""
+}
