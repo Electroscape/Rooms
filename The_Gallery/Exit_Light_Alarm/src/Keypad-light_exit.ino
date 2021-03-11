@@ -16,6 +16,8 @@ String version = "version 1.64";
 // #define RFID_DISABLE 1
 // #define OLED_DISABLE 1
 
+#include "header_s.h"
+
 #include <Arduino.h>
 //Watchdog timer
 #include <avr/wdt.h>
@@ -41,43 +43,34 @@ String version = "version 1.64";
 	#include "SSD1306AsciiWire.h"         /* https://github.com/greiman/SSD1306Ascii                            */
 #endif
 
+#ifndef RFID_DISABLE
+	#define RFID_1_SS_PIN           8     /* Per Konvention ist dies RFID-Port 1  */
+	#define RFID_2_SS_PIN           7     /* Per Konvention ist dies RFID-Port 2  */
+	#define RFID_3_SS_PIN           4     /* Per Konvention ist dies RFID-Port 3  */
+	#define RFID_4_SS_PIN           2     /* Per Konvention ist dies RFID-Port 4  */
+	// If using the breakout with SPI, define the pins for SPI communication.
+	#define PN532_SCK               13
+	#define PN532_MOSI              11
+	#define PN532_MISO              12
 
-// Standards der Adressierung (Konvention)
-	// Relayboard und OLED
-		#define RELAY_I2C_ADD     	 0x3F     /* Relay Expander																							*/
-		#define LIGHT_OLED_ADD       0x3C     /* Ist durch Hardware des OLEDs 0x3C									*/
-		#define EXIT_OLED_ADD        0x3D     /* Ist durch Hardware des OLEDs 									*/
+	const byte RFID_SSPins[]  = {RFID_1_SS_PIN};
 
-// ______________________EINSTELLUNGEN______________________
-	// RFID
-	#ifndef RFID_DISABLE
-		#define RFID_1_SS_PIN           8     /* Per Konvention ist dies RFID-Port 1                                */
-		#define RFID_2_SS_PIN           7     /* Per Konvention ist dies RFID-Port 2                                */
-		#define RFID_3_SS_PIN           4     /* Per Konvention ist dies RFID-Port 3                                */
-		#define RFID_4_SS_PIN           2     /* Per Konvention ist dies RFID-Port 4                                */
+	const Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
 
-		const byte RFID_SSPins[]  = {RFID_1_SS_PIN};
+	#define RFID_AMOUNT         1
+	const Adafruit_PN532 RFID_READERS[1] = {RFID_0}; //
 
-		// If using the breakout with SPI, define the pins for SPI communication.
-		#define PN532_SCK               13
-		#define PN532_MOSI              11
-		#define PN532_MISO              12
+	int rfid_ticks = 0;
+	int rfid_last_scan = millis();
+	const int rfid_scan_delay = 500;
+	const int rfid_ticks_required = 3;
+#endif
 
-		const Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
-
-		#define RFID_AMOUNT         1
-		const Adafruit_PN532 RFID_READERS[1] = {RFID_0}; //
-
-		int rfid_ticks = 0;
-		int rfid_last_scan = millis();
-		const int rfid_scan_delay = 500;
-		const int rfid_ticks_required = 3;
-	#endif
-		// no key or pass atm, we check only for presence
+const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 
 	// relay BASICS
 		#define REL_AMOUNT      8
-		enum REL_PIN{
+		enum REL_PIN {
 		    REL_1_PIN ,                              // 0 Door Opener
 		    REL_2_PIN ,                              // 1 Buzzer
 		    REL_3_PIN ,                              // 2
@@ -158,12 +151,10 @@ Expander_PCF8574 relay;
 
 
 void print_serial_header() {
-	Serial.println(title);
-
-    Serial.print(F("!header_begin\n"));
-    Serial.println(title);
-    Serial.println(versionDate);
-    Serial.println(version);
+	printWithHeader("!header_begin\n", "SYS");
+	printWithHeader(title, "SYS");
+	printWithHeader(versionDate, "SYS");
+	printWithHeader(version, "SYS");
 }
 
 
@@ -275,7 +266,8 @@ void keypadEvent(KeypadEvent eKey){
 								light_oled.print("         ");
 								light_oled.println(passLight.guess);
 							#endif
-							Serial.print(F(" -> Code: ")); Serial.println(passLight.guess);
+							printWithHeader(" -> Code: ", "LIT");
+							printWithHeader(passLight.guess, "LIT");
 						break;
 						case 1:
 							passExit.append(eKey);
@@ -287,7 +279,8 @@ void keypadEvent(KeypadEvent eKey){
 								exit_oled.print("         ");
 								exit_oled.println(passExit.guess);
 							#endif
-							Serial.print(F(" -> Code: ")); Serial.println(passExit.guess);
+							printWithHeader(" -> Code: ", "EXT");
+							printWithHeader(passExit.guess, "EXT");
 						break;
 					}
 				break;
@@ -331,13 +324,14 @@ void keypad_update() {
 }
 
 void passwordReset() {
-	Serial.print(F("Resetting Password for: "));
 	switch (usedkeypad) {
 		case 0:
-			passLight.reset(); Serial.print(F("Light\n"));
+			passLight.reset();
+			printWithHeader("Resetting Password for: Light", "LIT");
 		break;
 		case 1:
-			passExit.reset(); Serial.print(F("Exit\n"));
+			passExit.reset();
+			printWithHeader("Resetting Password for: Exit", "EXT");
 		break;
 	}
 }
@@ -348,9 +342,9 @@ void checkPassword() {
 		case 0:
 			Serial.print(F("Light\n"));
 			// don't check if there is no password entered
-			if (strlen(passLight.guess) < 1) return true;
+			if (strlen(passLight.guess) < 1) return;
 			if (passLight.evaluate()) {
-				Serial.print(F( "Korrektes Passwort: Licht an\n"));
+				printWithHeader("!Correct", "LIT");
 				#ifndef OLED_DISABLE
 					light_oled.clear();
 					light_oled.setFont(Adafruit5x7);
@@ -361,6 +355,7 @@ void checkPassword() {
 				relay.digitalWrite(REL_LICHT_PIN, !REL_LICHT_INIT);
 				delay(3000);
 			} else {
+				printWithHeader("!Wrong", "LIT");
 				#ifndef OLED_DISABLE
 					light_oled.println("    ACCESS DENIED!");
 				#endif
@@ -370,9 +365,9 @@ void checkPassword() {
 		case 1:
 			Serial.print(F("Exit"));
 			// don't check if there is no password entered
-			if (strlen(passExit.guess) < 1) return true;
+			if (strlen(passExit.guess) < 1) return;
 			if (passExit.evaluate()) {
-				Serial.print(F( "Korrektes Passwort: Exit opening\n"));
+				printWithHeader("!Correct", "EXT");
 				#ifndef OLED_DISABLE
 					exit_oled.clear();
 					exit_oled.setFont(Adafruit5x7);
@@ -386,6 +381,7 @@ void checkPassword() {
 				relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
 				wdt_reset();
 			} else {
+				printWithHeader("!Wrong", "EXT");
 				#ifndef OLED_DISABLE
 					exit_oled.println("    ACCESS DENIED!");
 				#endif
@@ -449,6 +445,7 @@ void checkPassword() {
 			rfid_ticks = 0;
 		} else {
 			if (rfid_ticks == rfid_ticks_required) {
+				printWithHeader("!Correct", "ALA");
 				Serial.print(F("compass removed, activating alarm\n"));
 				relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
 				rfid_ticks++;
@@ -600,6 +597,16 @@ void loop() {
 		}
 	#endif
 
+}
+
+void printWithHeader(String message, String source) {
+    digitalWrite(ctrlPin, MAX485_WRITE);
+    Serial.println(); Serial.print("!");
+    Serial.print(brainName); Serial.print(",");
+    Serial.print(source); Serial.print(",");
+    Serial.print(message); Serial.println(",Done.");
+    delay(50);
+    digitalWrite(ctrlPin, MAX485_READ);
 }
 
 void software_Reset() {
