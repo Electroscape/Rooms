@@ -27,11 +27,10 @@ def main():
     if not src.exists():
         # Todo: consider expanding this creating an empty file?
         print("No source symlink file present")
-        exit()
 
     for file in folder.glob('**/' + file_name):
-        if not file.is_symlink():
-            file.unlink()
+        if not(file == src) and not file.is_symlink():
+            file.unlink()   # deletes the file, even if it sounds like a link... its the OS linking those address blocks
             symlink(src, file)
 
 
