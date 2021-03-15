@@ -20,123 +20,112 @@ using namespace stb_namespace;
 // RFID
 
 // Keypad
-#include <Wire.h>                     /* Standardbibliothek                                                 */
-#include <Keypad.h>                   /* Standardbibliothek                                                 */
-#include <Keypad_I2C.h>               /*                                                                    */
-#include <Password.h>                 /* http://www.arduino.cc/playground/uploads/Code/Password.zip
-                                 Muss modifiziert werden:
-                                 Password.h -> char guess[ MAX_PASSWORD_LENGTH ];
-                                 und byte currentIndex; müssen PUBLIC sein                         */
+#include <Keypad.h> /* Standardbibliothek                                                 */
+#include <Keypad_I2C.h>
+#include <Password.h>
+#include <Wire.h> /* Standardbibliothek                                                 */
+
 // I2C Port Expander
-#include <PCF8574.h>                  /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
+#include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
 #ifndef RFID_DISABLE
-	#include <Adafruit_PN532.h>
+#include <Adafruit_PN532.h>
 #endif
 // OLED
 // #include "SSD1306Ascii.h"             /* https://github.com/greiman/SSD1306Ascii                            */
 #ifndef OLED_DISABLE
-	#include "SSD1306AsciiWire.h"         /* https://github.com/greiman/SSD1306Ascii                            */
+#include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
 #endif
 
 #ifndef RFID_DISABLE
-	#define RFID_1_SS_PIN           8     /* Per Konvention ist dies RFID-Port 1  */
-	#define RFID_2_SS_PIN           7     /* Per Konvention ist dies RFID-Port 2  */
-	#define RFID_3_SS_PIN           4     /* Per Konvention ist dies RFID-Port 3  */
-	#define RFID_4_SS_PIN           2     /* Per Konvention ist dies RFID-Port 4  */
-	// If using the breakout with SPI, define the pins for SPI communication.
-	#define PN532_SCK               13
-	#define PN532_MOSI              11
-	#define PN532_MISO              12
+#define RFID_1_SS_PIN 8 /* Per Konvention ist dies RFID-Port 1  */
+#define RFID_2_SS_PIN 7 /* Per Konvention ist dies RFID-Port 2  */
+#define RFID_3_SS_PIN 4 /* Per Konvention ist dies RFID-Port 3  */
+#define RFID_4_SS_PIN 2 /* Per Konvention ist dies RFID-Port 4  */
+// If using the breakout with SPI, define the pins for SPI communication.
+#define PN532_SCK 13
+#define PN532_MOSI 11
+#define PN532_MISO 12
 
-	const byte RFID_SSPins[]  = {RFID_1_SS_PIN};
+const byte RFID_SSPins[] = {RFID_1_SS_PIN};
 
-	Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
+Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
 
-	#define RFID_AMOUNT         1
-	Adafruit_PN532 RFID_READERS[1] = {RFID_0}; //
+#define RFID_AMOUNT 1
+Adafruit_PN532 RFID_READERS[1] = {RFID_0};  //
 
-	int rfid_ticks = 0;
-	int rfid_last_scan = millis();
-	const int rfid_scan_delay = 500;
-	const int rfid_ticks_required = 3;
+int rfid_ticks = 0;
+int rfid_last_scan = millis();
+const int rfid_scan_delay = 500;
+const int rfid_ticks_required = 3;
 #endif
 
+// relay BASICS
+#define REL_AMOUNT 8
+enum REL_PIN {
+    REL_1_PIN,  // 0 Door Opener
+    REL_2_PIN,  // 1 Buzzer
+    REL_3_PIN,  // 2
+    REL_4_PIN,  // 3
+    REL_5_PIN,  // 4
+    REL_6_PIN,  // 5
+    REL_7_PIN,  // 6
+    REL_8_PIN   // 7
+};
 
+#define REL_EXIT_INIT 0
+#define REL_ALARM_INIT 1
+#define REL_LICHT_INIT 1
+#define REL_4_INIT 0
+#define REL_5_INIT 0
+#define REL_6_INIT 0
+#define REL_7_INIT 0
+#define REL_8_INIT 0
 
-	// relay BASICS
-		#define REL_AMOUNT      8
-		enum REL_PIN {
-		    REL_1_PIN ,                              // 0 Door Opener
-		    REL_2_PIN ,                              // 1 Buzzer
-		    REL_3_PIN ,                              // 2
-		    REL_4_PIN ,                              // 3
-		    REL_5_PIN ,                              // 4
-		    REL_6_PIN ,                              // 5
-		    REL_7_PIN ,                              // 6
-		    REL_8_PIN                                // 7
-		};
+const enum REL_PIN relayPinArray[] = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
+const byte relayInitArray[] = {REL_EXIT_INIT, REL_ALARM_INIT, REL_LICHT_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
 
-		#define REL_EXIT_INIT       0
-		#define REL_ALARM_INIT      1
-		#define REL_LICHT_INIT      1
-		#define REL_4_INIT      	0
-		#define REL_5_INIT      	0
-		#define REL_6_INIT      	0
-		#define REL_7_INIT      	0
-		#define REL_8_INIT      	0
+// relay config
+#define REL_EXIT_PIN 0
+#define REL_ALARM_PIN 1
+#define REL_LICHT_PIN 2
 
-		const enum REL_PIN relayPinArray[]  = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
-		const byte relayInitArray[] = {REL_EXIT_INIT, REL_ALARM_INIT, REL_LICHT_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
-
-	// relay config
-		#define REL_EXIT_PIN 	0
-		#define REL_ALARM_PIN	1
-		#define REL_LICHT_PIN 	2
-
-
-	// Keypad Addresses
-		#define LIGHT_KEYPAD_ADD       	0x38     /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
-		#define EXIT_KEYPAD_ADD			0x39     /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
-
+// Keypad Addresses
+#define LIGHT_KEYPAD_ADD 0x38 /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
+#define EXIT_KEYPAD_ADD 0x39  /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
 
 /*==OLED====================================================================================================*/
 
 #ifndef OLED_DISABLE
-	SSD1306AsciiWire light_oled;
-	SSD1306AsciiWire exit_oled;
-	const int oled_reset_after = 2000;
+SSD1306AsciiWire light_oled;
+SSD1306AsciiWire exit_oled;
+const int oled_reset_after = 2000;
 #endif
 
-
-
-
-
 /*==KEYPAD I2C==============================================================================================*/
-const byte KEYPAD_ROWS = 4; 		// Zeilen
-const byte KEYPAD_COLS = 3; 		// Spalten
+const byte KEYPAD_ROWS = 4;  // Zeilen
+const byte KEYPAD_COLS = 3;  // Spalten
 const byte KEYPAD_CODE_LENGTH = 4;
 const byte KEYPAD_CODE_LENGTH_MAX = 7;
 
 char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
-	{'1','2','3'},
-	{'4','5','6'},
-	{'7','8','9'},
-	{'*','0','#'}
-};
+    {'1', '2', '3'},
+    {'4', '5', '6'},
+    {'7', '8', '9'},
+    {'*', '0', '#'}};
 
-byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Zeilen  - Messleitungen
-byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Spalten - Steuerleitungen (abwechselnd HIGH)
+byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3};  // Zeilen  - Messleitungen
+byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (abwechselnd HIGH)
 
 static unsigned long update_timers[] = {millis(), millis()};
 
-Keypad_I2C LightKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, LIGHT_KEYPAD_ADD, PCF8574);
-Keypad_I2C ExitKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, EXIT_KEYPAD_ADD, PCF8574);
+Keypad_I2C LightKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, LIGHT_KEYPAD_ADD, PCF8574);
+Keypad_I2C ExitKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, EXIT_KEYPAD_ADD, PCF8574);
 static int usedkeypad = -1;
 
 // Passwort
-Password passLight = Password(makeKeymap("1708"));          // Schaltet das Licht im Büro an
-Password passExit  = Password(makeKeymap("2381984"));       // Öffnet die Ausgangstür
+Password passLight = Password(makeKeymap("1708"));    // Schaltet das Licht im Büro an
+Password passExit = Password(makeKeymap("2381984"));  // Öffnet die Ausgangstür
 
 /*==PCF8574=================================================================================================*/
 Expander_PCF8574 relay;
@@ -145,368 +134,369 @@ Expander_PCF8574 relay;
 //===BASICS===================================================================================================
 //==========================================================================================================*/
 
-
 void print_serial_header() {
-	printWithHeader("!header_begin\n", "SYS");
-	printWithHeader(title, "SYS");
-	printWithHeader(versionDate, "SYS");
-	printWithHeader(version, "SYS");
+    printWithHeader("!header_begin\n", "SYS");
+    printWithHeader(title, "SYS");
+    printWithHeader(versionDate, "SYS");
+    printWithHeader(version, "SYS");
 }
 
-
 void output_init() {
-	Serial.begin(115200);
+    Serial.begin(115200);
     Wire.begin();
     print_serial_header();
 }
-
-
 
 /*============================================================================================================
 //===MOTHER===================================================================================================
 //==========================================================================================================*/
 
-
 bool i2c_scanner() {
-	Serial.println();
-    Serial.println (F("I2C scanner:"));
-    Serial.println (F("Scanning..."));
-	byte count = 0;
-	for (byte i = 8; i < 120; i++) {
-		Wire.beginTransmission (i);
-		if (Wire.endTransmission () == 0) {
-			Serial.print ("Found address: ");
-			Serial.print (i, DEC);
-			Serial.print (" (0x");
-			Serial.print (i, HEX);
-			Serial.println (")");
-			count++;
-			delay (1);  // maybe unneeded?
-		} // end of good response
-	} // end of for loop
-	Serial.println ("Done.");
-	Serial.print ("Found ");
-	Serial.print (count, DEC);
-	Serial.println (" device(s).");
+    Serial.println();
+    Serial.println(F("I2C scanner:"));
+    Serial.println(F("Scanning..."));
+    byte count = 0;
+    for (byte i = 8; i < 120; i++) {
+        Wire.beginTransmission(i);
+        if (Wire.endTransmission() == 0) {
+            Serial.print("Found address: ");
+            Serial.print(i, DEC);
+            Serial.print(" (0x");
+            Serial.print(i, HEX);
+            Serial.println(")");
+            count++;
+            delay(1);  // maybe unneeded?
+        }              // end of good response
+    }                  // end of for loop
+    Serial.println("Done.");
+    Serial.print("Found ");
+    Serial.print(count, DEC);
+    Serial.println(" device(s).");
 
     return true;
 }
-
 
 bool relay_init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
 
-    for (int i=0; i<REL_AMOUNT; i++) {
+    for (int i = 0; i < REL_AMOUNT; i++) {
         relay.pinMode(i, OUTPUT);
         relay.digitalWrite(i, HIGH);
     }
 
-    for (int i=0; i<REL_AMOUNT; i++) {
-	    relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
+    for (int i = 0; i < REL_AMOUNT; i++) {
+        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
     }
 
     Serial.print(F("\n successfully initialized relay\n"));
     return true;
 }
 
-
 /*============================================================================================================
 //===KEYPAD===================================================================================================
 //==========================================================================================================*/
 
-void keypadEvent(KeypadEvent eKey){
+void keypadEvent(KeypadEvent eKey) {
+    Serial.print(F("keypadevent on keypad"));
+    Serial.println(usedkeypad);
+    KeyState state = IDLE;
 
-	Serial.print(F("keypadevent on keypad")); Serial.println(usedkeypad);
-	KeyState state = IDLE;
+    switch (usedkeypad) {
+        case 0:
+            state = LightKeypad.getState();
+            break;
+        case 1:
+            state = ExitKeypad.getState();
+            break;
+    }
 
-	switch (usedkeypad) {
-		case 0:
-			state = LightKeypad.getState();
-		break;
-		case 1:
-			state = ExitKeypad.getState();
-		break;
-	}
+    if (eKey) {
+        Serial.println(eKey);
+    };
 
-	if (eKey) { Serial.println(eKey);};
+    switch (state) {
+        case PRESSED:
+            update_timers[usedkeypad] = millis();
+            Serial.print(F("Taste: "));
+            Serial.print(eKey);
 
-	switch( state ) {
+            switch (eKey) {
+                case '#':
+                    checkPassword();
+                    break;
+                case '*':
+#ifndef OLED_DISABLE
+                    switch (usedkeypad) {
+                        case 0:
+                            light_oled.clear();
+                            break;
+                        case 1:
+                            exit_oled.clear();
+                            break;
+                    };
+#endif
+                    passwordReset();
+                    break;
+                default:
+                    switch (usedkeypad) {
+                        case 0:
+                            passLight.append(eKey);
+#ifndef OLED_DISABLE
+                            light_oled.clear();
+                            light_oled.setFont(Adafruit5x7);
+                            light_oled.print("\n\n\n");
+                            light_oled.setFont(Verdana12_bold);
+                            light_oled.print("         ");
+                            light_oled.println(passLight.guess);
+#endif
+                            printWithHeader(" -> Code: ", "LIT");
+                            printWithHeader(passLight.guess, "LIT");
+                            break;
+                        case 1:
+                            passExit.append(eKey);
+#ifndef OLED_DISABLE
+                            exit_oled.clear();
+                            exit_oled.setFont(Adafruit5x7);
+                            exit_oled.print("\n\n\n");
+                            exit_oled.setFont(Verdana12_bold);
+                            exit_oled.print("         ");
+                            exit_oled.println(passExit.guess);
+#endif
+                            printWithHeader(" -> Code: ", "EXT");
+                            printWithHeader(passExit.guess, "EXT");
+                            break;
+                    }
+                    break;
+            }
+            break;
 
-		case PRESSED:
-			update_timers[usedkeypad] = millis();
-			Serial.print(F("Taste: ")); Serial.print(eKey);
-
-			switch (eKey) {
-				case '#':
-					checkPassword();
-				break;
-				case '*':
-					#ifndef OLED_DISABLE
-						switch (usedkeypad) {
-							case 0: light_oled.clear(); break;
-							case 1: exit_oled.clear(); break;
-						};
-					#endif
-					passwordReset();
-				break;
-				default:
-					switch (usedkeypad) {
-						case 0:
-							passLight.append(eKey);
-							#ifndef OLED_DISABLE
-								light_oled.clear();
-								light_oled.setFont(Adafruit5x7);
-								light_oled.print("\n\n\n");
-								light_oled.setFont(Verdana12_bold);
-								light_oled.print("         ");
-								light_oled.println(passLight.guess);
-							#endif
-							printWithHeader(" -> Code: ", "LIT");
-							printWithHeader(passLight.guess, "LIT");
-						break;
-						case 1:
-							passExit.append(eKey);
-							#ifndef OLED_DISABLE
-								exit_oled.clear();
-								exit_oled.setFont(Adafruit5x7);
-								exit_oled.print("\n\n\n");
-								exit_oled.setFont(Verdana12_bold);
-								exit_oled.print("         ");
-								exit_oled.println(passExit.guess);
-							#endif
-							printWithHeader(" -> Code: ", "EXT");
-							printWithHeader(passExit.guess, "EXT");
-						break;
-					}
-				break;
-			}
-		break;
-
-		default: break;
-	}
+        default:
+            break;
+    }
 }
 
 void LightKeypadEvent(KeypadEvent eKey) {
-	usedkeypad = 0;
-	keypadEvent(eKey);
+    usedkeypad = 0;
+    keypadEvent(eKey);
 }
 
 void ExitKeypadEvent(KeypadEvent eKey) {
-	usedkeypad = 1;
-	keypadEvent(eKey);
+    usedkeypad = 1;
+    keypadEvent(eKey);
 }
 
-
 bool keypad_init() {
+    LightKeypad.addEventListener(LightKeypadEvent);  // Event Listener erstellen
+    LightKeypad.begin(makeKeymap(KeypadKeys));
+    LightKeypad.setHoldTime(5000);
+    LightKeypad.setDebounceTime(20);
 
-	LightKeypad.addEventListener(LightKeypadEvent);    // Event Listener erstellen
-	LightKeypad.begin( makeKeymap(KeypadKeys) );
-	LightKeypad.setHoldTime(5000);
-	LightKeypad.setDebounceTime(20);
+    ExitKeypad.addEventListener(ExitKeypadEvent);  // Event Listener erstellen
+    ExitKeypad.begin(makeKeymap(KeypadKeys));
+    ExitKeypad.setHoldTime(5000);
+    ExitKeypad.setDebounceTime(20);
 
-	ExitKeypad.addEventListener(ExitKeypadEvent);    // Event Listener erstellen
-	ExitKeypad.begin( makeKeymap(KeypadKeys) );
-	ExitKeypad.setHoldTime(5000);
-	ExitKeypad.setDebounceTime(20);
-
-	return true;
+    return true;
 }
 
 void keypad_update() {
-	usedkeypad = -1;
-	LightKeypad.getKey();
-	ExitKeypad.getKey();
+    usedkeypad = -1;
+    LightKeypad.getKey();
+    ExitKeypad.getKey();
 }
 
 void passwordReset() {
-	switch (usedkeypad) {
-		case 0:
-			passLight.reset();
-			printWithHeader("Resetting Password for: Light", "LIT");
-		break;
-		case 1:
-			passExit.reset();
-			printWithHeader("Resetting Password for: Exit", "EXT");
-		break;
-	}
+    switch (usedkeypad) {
+        case 0:
+            passLight.reset();
+            printWithHeader("Resetting Password for: Light", "LIT");
+            break;
+        case 1:
+            passExit.reset();
+            printWithHeader("Resetting Password for: Exit", "EXT");
+            break;
+    }
 }
 
 void checkPassword() {
-	switch (usedkeypad) {
-		// between switch and case is never executed!
-		case 0:
-			Serial.print(F("Light\n"));
-			// don't check if there is no password entered
-			if (strlen(passLight.guess) < 1) return;
-			if (passLight.evaluate()) {
-				printWithHeader("!Correct", "LIT");
-				#ifndef OLED_DISABLE
-					light_oled.clear();
-					light_oled.setFont(Adafruit5x7);
-					light_oled.print("\n\n\n");
-					light_oled.setFont(Verdana12_bold);
-					light_oled.println("   ACCESS GRANTED!");
-				#endif
-				relay.digitalWrite(REL_LICHT_PIN, !REL_LICHT_INIT);
-				delay(3000);
-			} else {
-				printWithHeader("!Wrong", "LIT");
-				#ifndef OLED_DISABLE
-					light_oled.println("    ACCESS DENIED!");
-				#endif
-			}
-			passwordReset();
-		break;
-		case 1:
-			Serial.print(F("Exit"));
-			// don't check if there is no password entered
-			if (strlen(passExit.guess) < 1) return;
-			if (passExit.evaluate()) {
-				printWithHeader("!Correct", "EXT");
-				#ifndef OLED_DISABLE
-					exit_oled.clear();
-					exit_oled.setFont(Adafruit5x7);
-					exit_oled.print("\n\n\n");
-					exit_oled.setFont(Verdana12_bold);
-					exit_oled.println("   ACCESS GRANTED!");
-				#endif
-				relay.digitalWrite(REL_EXIT_PIN, !REL_EXIT_INIT);
-				wdt_reset();
-				delay(3000);
-				relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
-				wdt_reset();
-			} else {
-				printWithHeader("!Wrong", "EXT");
-				#ifndef OLED_DISABLE
-					exit_oled.println("    ACCESS DENIED!");
-				#endif
-			}
-			passwordReset();
-		break;
-		default: Serial.print(F("error, no keypad active\n")); break;
-	}
+    switch (usedkeypad) {
+        // between switch and case is never executed!
+        case 0:
+            Serial.print(F("Light\n"));
+            // don't check if there is no password entered
+            if (strlen(passLight.guess) < 1) return;
+            if (passLight.evaluate()) {
+                printWithHeader("!Correct", "LIT");
+#ifndef OLED_DISABLE
+                light_oled.clear();
+                light_oled.setFont(Adafruit5x7);
+                light_oled.print("\n\n\n");
+                light_oled.setFont(Verdana12_bold);
+                light_oled.println("   ACCESS GRANTED!");
+#endif
+                relay.digitalWrite(REL_LICHT_PIN, !REL_LICHT_INIT);
+                delay(3000);
+            } else {
+                printWithHeader("!Wrong", "LIT");
+#ifndef OLED_DISABLE
+                light_oled.println("    ACCESS DENIED!");
+#endif
+            }
+            passwordReset();
+            break;
+        case 1:
+            Serial.print(F("Exit"));
+            // don't check if there is no password entered
+            if (strlen(passExit.guess) < 1) return;
+            if (passExit.evaluate()) {
+                printWithHeader("!Correct", "EXT");
+#ifndef OLED_DISABLE
+                exit_oled.clear();
+                exit_oled.setFont(Adafruit5x7);
+                exit_oled.print("\n\n\n");
+                exit_oled.setFont(Verdana12_bold);
+                exit_oled.println("   ACCESS GRANTED!");
+#endif
+                relay.digitalWrite(REL_EXIT_PIN, !REL_EXIT_INIT);
+                wdt_reset();
+                delay(3000);
+                relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
+                wdt_reset();
+            } else {
+                printWithHeader("!Wrong", "EXT");
+#ifndef OLED_DISABLE
+                exit_oled.println("    ACCESS DENIED!");
+#endif
+            }
+            passwordReset();
+            break;
+        default:
+            Serial.print(F("error, no keypad active\n"));
+            break;
+    }
 }
-
 
 /*============================================================================================================
 //===RFID====================================================================================================
 //==========================================================================================================*/
 
 #ifndef RFID_DISABLE
-	bool RFID_init() {
+bool RFID_init() {
+    for (int i = 0; i < RFID_AMOUNT; i++) {
+        delay(20);
 
-	    for (int i=0; i<RFID_AMOUNT; i++) {
+        Serial.print(F("initializing reader: "));
+        Serial.println(i);
+        RFID_READERS[i].begin();
+        RFID_READERS[i].setPassiveActivationRetries(5);
 
-	        delay(20);
+        int retries = 0;
+        while (true) {
+            uint32_t versiondata = RFID_READERS[i].getFirmwareVersion();
+            if (!versiondata) {
+                Serial.print(F("Didn't find PN53x board\n"));
+                if (retries > 5) {
+                    Serial.print(F("PN532 startup timed out, restarting\n"));
+                    software_Reset();
+                }
+            } else {
+                Serial.print(F("Found chip PN5"));
+                Serial.println((versiondata >> 24) & 0xFF, HEX);
+                Serial.print(F("Firmware ver. "));
+                Serial.print((versiondata >> 16) & 0xFF, DEC);
+                Serial.print('.');
+                Serial.println((versiondata >> 8) & 0xFF, DEC);
+                break;
+            }
+            retries++;
+        }
+        // configure board to read RFID tags
+        RFID_READERS[i].SAMConfig();
+        delay(20);
+    }
+    return true;
+}
 
-	        Serial.print(F("initializing reader: ")); Serial.println(i);
-	        RFID_READERS[i].begin();
-	        RFID_READERS[i].setPassiveActivationRetries(5);
-
-	        int retries = 0;
-	        while (true) {
-	            uint32_t versiondata = RFID_READERS[i].getFirmwareVersion();
-	            if (!versiondata) {
-	                Serial.print(F("Didn't find PN53x board\n"));
-	                if (retries > 5) {
-	                    Serial.print(F("PN532 startup timed out, restarting\n"));
-	                    software_Reset();
-	                }
-	            } else {
-	                Serial.print(F("Found chip PN5")); Serial.println((versiondata>>24) & 0xFF, HEX);
-	                Serial.print(F("Firmware ver. ")); Serial.print((versiondata>>16) & 0xFF, DEC);
-	                Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-	                break;
-	            }
-	            retries++;
-	        }
-	        // configure board to read RFID tags
-	        RFID_READERS[i].SAMConfig();
-	        delay(20);
-	    }
-	    return true;
-	}
-
-	void RFID_alarm_check() {
-		uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0 };
-		uint8_t uidLength;
-		uint8_t success = RFID_READERS[0].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-		Serial.print(F("RFID ticks: ")); Serial.println(rfid_ticks);
-		if (success) {
-			if (rfid_ticks > 0) {
-				Serial.print(F("resetting alarm\n"));
-				relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
-			}
-			rfid_ticks = 0;
-		} else {
-			if (rfid_ticks == rfid_ticks_required) {
-				printWithHeader("!Correct", "ALA");
-				Serial.print(F("compass removed, activating alarm\n"));
-				relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
-				rfid_ticks++;
-			} else if (rfid_ticks < rfid_ticks_required + 1) {
-				rfid_ticks++;
-			}
-		}
-	}
+void RFID_alarm_check() {
+    uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};
+    uint8_t uidLength;
+    uint8_t success = RFID_READERS[0].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+    Serial.print(F("RFID ticks: "));
+    Serial.println(rfid_ticks);
+    if (success) {
+        if (rfid_ticks > 0) {
+            Serial.print(F("resetting alarm\n"));
+            relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
+        }
+        rfid_ticks = 0;
+    } else {
+        if (rfid_ticks == rfid_ticks_required) {
+            printWithHeader("!Correct", "ALA");
+            Serial.print(F("compass removed, activating alarm\n"));
+            relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
+            rfid_ticks++;
+        } else if (rfid_ticks < rfid_ticks_required + 1) {
+            rfid_ticks++;
+        }
+    }
+}
 #endif
 
 /*============================================================================================================
 //===OLED=====================================================================================================
 //==========================================================================================================*/
 
-
 #ifndef OLED_DISABLE
-	bool oled_init() {
-		// &SH1106_128x64 &Adafruit128x64
-		Serial.print(F("Oled init\n"));
-		light_oled.begin(&SH1106_128x64, LIGHT_OLED_ADD);
-		light_oled.set400kHz();
-		light_oled.setScroll(true);
-		light_oled.clear();
-		light_oled.setFont(Verdana12_bold);	// Arial_bold_14
-		delay(1000);
+bool oled_init() {
+    // &SH1106_128x64 &Adafruit128x64
+    Serial.print(F("Oled init\n"));
+    light_oled.begin(&SH1106_128x64, LIGHT_OLED_ADD);
+    light_oled.set400kHz();
+    light_oled.setScroll(true);
+    light_oled.clear();
+    light_oled.setFont(Verdana12_bold);  // Arial_bold_14
+    delay(1000);
 
-		exit_oled.begin(&SH1106_128x64, EXIT_OLED_ADD);
-		exit_oled.set400kHz();
-		exit_oled.setScroll(true);
+    exit_oled.begin(&SH1106_128x64, EXIT_OLED_ADD);
+    exit_oled.set400kHz();
+    exit_oled.setScroll(true);
 
-		exit_oled.clear();
-		exit_oled.setFont(Verdana12_bold);
-		return true;
-	}
+    exit_oled.clear();
+    exit_oled.setFont(Verdana12_bold);
+    return true;
+}
 
-	void OLED_reset() {
-		int outdated = 0;
-		for (int keypad_no = 0; keypad_no < 2; keypad_no++) {
-			if (millis() - update_timers[keypad_no] >= oled_reset_after) {
-				outdated++;
-			}
-		}
-		if (outdated >= 2) {
-			for (int keypad_no = 0; keypad_no < 2; keypad_no++) {
-				update_timers[keypad_no] = millis();
-			}
+void OLED_reset() {
+    int outdated = 0;
+    for (int keypad_no = 0; keypad_no < 2; keypad_no++) {
+        if (millis() - update_timers[keypad_no] >= oled_reset_after) {
+            outdated++;
+        }
+    }
+    if (outdated >= 2) {
+        for (int keypad_no = 0; keypad_no < 2; keypad_no++) {
+            update_timers[keypad_no] = millis();
+        }
 
-			Serial.print(F("Reset! \n"));
-			if (strlen(passLight.guess) > 0) {
-				Serial.println("checkpass Light \n\n");
-				usedkeypad = 0;
-				checkPassword();
-			} else {
-				light_oled.clear();
-			}
-			if (strlen(passExit.guess) > 0) {
-				Serial.println("checkpass Exit \n\n");
-				usedkeypad = 1;
-				checkPassword();
-			} else {
-				exit_oled.clear();
-			}
-			passwordReset();
-		}
-	}
+        Serial.print(F("Reset! \n"));
+        if (strlen(passLight.guess) > 0) {
+            Serial.println("checkpass Light \n\n");
+            usedkeypad = 0;
+            checkPassword();
+        } else {
+            light_oled.clear();
+        }
+        if (strlen(passExit.guess) > 0) {
+            Serial.println("checkpass Exit \n\n");
+            usedkeypad = 1;
+            checkPassword();
+        } else {
+            exit_oled.clear();
+        }
+        passwordReset();
+    }
+}
 #endif
 /*
 
@@ -521,76 +511,78 @@ void OLED_simple_bold_text(SSD1306AsciiWire oled, char str[]) {
 }
 */
 
-
-
-
 void setup() {
-	output_init();
-	Serial.println("WDT endabled");
-	// wdt_enable(WDTO_8S);
-	wdt_reset();
+    output_init();
+    Serial.println("WDT endabled");
+    // wdt_enable(WDTO_8S);
+    wdt_reset();
 
-	Serial.println("!setup_begin");
+    Serial.println("!setup_begin");
 
+    i2c_scanner();
 
-	i2c_scanner();
+#ifndef OLED_DISABLE
+    Serial.print(F("Oleds: ..."));
+    if (oled_init()) {
+        Serial.println(" light OLED ok...");
+    }
+#endif
 
-	#ifndef OLED_DISABLE
-		Serial.print(F("Oleds: ..."));
-		if (oled_init())	{Serial.println(" light OLED ok...");	}
-	#endif
+    Serial.print(F("Relay: ..."));
+    if (relay_init()) {
+        Serial.println(" ok");
+    }
+    wdt_reset();
 
-	Serial.print(F("Relay: ..."));
-	if (relay_init()) { Serial.println(" ok"); }
-	wdt_reset();
+#ifndef RFID_DISABLE
+    Serial.print(F("RFID: ..."));
+    if (RFID_init()) {
+        Serial.print(F(" ok\n"));
+    }
+#endif
 
+    wdt_reset();
 
-	#ifndef RFID_DISABLE
-		Serial.print(F("RFID: ..."));
-		if (RFID_init() ) {Serial.print(F(" ok\n"));	}
-	#endif
+    delay(50);
 
-	wdt_reset();
+    Serial.print(F("Keypad: ..."));
+    if (keypad_init()) {
+        Serial.print(F(" ok\n"));
+    }
+    wdt_reset();
+    delay(5);
 
-	delay(50);
+    Serial.println();
+    Serial.println("===================START=====================");
+    Serial.println();
 
-
-	Serial.print(F("Keypad: ..."));
-	if (keypad_init()) 	{Serial.print(F(" ok\n"));	}
-	wdt_reset();
-	delay(5);
-
-	Serial.println(); Serial.println("===================START====================="); Serial.println();
-
-	Serial.print(F("!setup_end\n\n"));
-	delay(2000);
+    Serial.print(F("!setup_end\n\n"));
+    delay(2000);
 }
 
 /*============================================================================================================
 //===LOOP=====================================================================================================
 //==========================================================================================================*/
 
-
 void loop() {
-	wdt_reset();
-	// Serial.println("keypad_update");
-	keypad_update();
-	#ifndef OLED_DISABLE
-		// Serial.println("oled");
-		OLED_reset();
-	#endif
-	/*
+    wdt_reset();
+    // Serial.println("keypad_update");
+    keypad_update();
+#ifndef OLED_DISABLE
+    // Serial.println("oled");
+    OLED_reset();
+#endif
+    /*
 	checkPassword();
 	passwordReset();
 	*/
 
-	#ifndef RFID_DISABLE
-		if (millis() - rfid_last_scan > rfid_scan_delay) {
-			Serial.println("Attempting checkup");
-			rfid_last_scan = millis();
-			RFID_alarm_check();
-			Serial.println("checkup complete");
-		}
-	#endif
-
+#ifndef RFID_DISABLE
+    if (millis() - rfid_last_scan > rfid_scan_delay) {
+        Serial.println("Attempting checkup");
+        rfid_last_scan = millis();
+        RFID_alarm_check();
+        Serial.println("checkup complete");
+    }
+#endif
 }
