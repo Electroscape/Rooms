@@ -344,7 +344,7 @@ void checkPassword() {
             passwordReset();
             break;
         case 1:
-            Serial.print(F("Exit"));
+            Serial.print(F("Exit\n"));
             // don't check if there is no password entered
             if (strlen(passExit.guess) < 1) return;
             if (passExit.evaluate()) {
@@ -424,12 +424,14 @@ void RFID_alarm_check() {
     Serial.println(rfid_ticks);
     if (success) {
         if (rfid_ticks > 0) {
+            printWithHeader("Kompass vorhanden", "ALA");
             Serial.print(F("resetting alarm\n"));
             relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
         }
         rfid_ticks = 0;
     } else {
         if (rfid_ticks == rfid_ticks_required) {
+            printWithHeader("Kompass entfernt", "ALA");
             printWithHeader("!Correct", "ALA");
             Serial.print(F("compass removed, activating alarm\n"));
             relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
@@ -577,10 +579,8 @@ void loop() {
 
 #ifndef RFID_DISABLE
     if (millis() - rfid_last_scan > rfid_scan_delay) {
-        Serial.println("Attempting checkup");
         rfid_last_scan = millis();
         RFID_alarm_check();
-        Serial.println("checkup complete");
     }
 #endif
 }
