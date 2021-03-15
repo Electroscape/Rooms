@@ -1,24 +1,20 @@
 /*==========================================================================================================*/
-/*		2CP - TeamEscape - Engineering
- *		by Martin Pek & Robert Schloezer
+/**		2CP - TeamEscape - Engineering
+ *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.5
- *		-
- *		-
+ *		- use stb namespace
+ *		- solve all warnings
  *		-
  */
 /*==========================================================================================================*/
 
-String title = "Light & Exit & RFID S v0.2";
-String versionDate = "02.07.2020";
-String version = "version 1.64";
+#include "header_s.h"
+using namespace stb_namespace;
 
 // #define RFID_DISABLE 1
 // #define OLED_DISABLE 1
 
-#include "header_s.h"
-
-#include <Arduino.h>
 //Watchdog timer
 #include <avr/wdt.h>
 // RFID
@@ -30,7 +26,7 @@ String version = "version 1.64";
 #include <Password.h>                 /* http://www.arduino.cc/playground/uploads/Code/Password.zip
                                  Muss modifiziert werden:
                                  Password.h -> char guess[ MAX_PASSWORD_LENGTH ];
-                                 und byte currentIndex; muessen PUBLIC sein                         */
+                                 und byte currentIndex; müssen PUBLIC sein                         */
 // I2C Port Expander
 #include <PCF8574.h>                  /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
@@ -55,10 +51,10 @@ String version = "version 1.64";
 
 	const byte RFID_SSPins[]  = {RFID_1_SS_PIN};
 
-	const Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
+	Adafruit_PN532 RFID_0(PN532_SCK, PN532_MISO, PN532_MOSI, RFID_SSPins[0]);
 
 	#define RFID_AMOUNT         1
-	const Adafruit_PN532 RFID_READERS[1] = {RFID_0}; //
+	Adafruit_PN532 RFID_READERS[1] = {RFID_0}; //
 
 	int rfid_ticks = 0;
 	int rfid_last_scan = millis();
@@ -66,7 +62,7 @@ String version = "version 1.64";
 	const int rfid_ticks_required = 3;
 #endif
 
-const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
+
 
 	// relay BASICS
 		#define REL_AMOUNT      8
@@ -99,9 +95,9 @@ const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 		#define REL_LICHT_PIN 	2
 
 
-	// Keypad Adresses
-		#define LIGHT_KEYPAD_ADD       	0x38     /* moeglich sind 0x38, 39, 3A, 3B, 3D                         */
-		#define EXIT_KEYPAD_ADD			0x39     /* moeglich sind 0x38, 39, 3A, 3B, 3D                         */
+	// Keypad Addresses
+		#define LIGHT_KEYPAD_ADD       	0x38     /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
+		#define EXIT_KEYPAD_ADD			0x39     /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
 
 
 /*==OLED====================================================================================================*/
@@ -122,15 +118,15 @@ const byte KEYPAD_COLS = 3; 		// Spalten
 const byte KEYPAD_CODE_LENGTH = 4;
 const byte KEYPAD_CODE_LENGTH_MAX = 7;
 
-const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
+char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 	{'1','2','3'},
 	{'4','5','6'},
 	{'7','8','9'},
 	{'*','0','#'}
 };
 
-const byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Zeilen  - Messleitungen
-const byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Spalten - Steuerleitungen (abwechselnd HIGH)
+byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Zeilen  - Messleitungen
+byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Spalten - Steuerleitungen (abwechselnd HIGH)
 
 static unsigned long update_timers[] = {millis(), millis()};
 
@@ -139,8 +135,8 @@ Keypad_I2C ExitKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEY
 static int usedkeypad = -1;
 
 // Passwort
-Password passLight = Password( "1708" );          // Schaltet das Licht im Buero an
-Password passExit  = Password( "2381984" );       // Oeffnet die Ausgangstuer
+Password passLight = Password(makeKeymap("1708"));          // Schaltet das Licht im Büro an
+Password passExit  = Password(makeKeymap("2381984"));       // Öffnet die Ausgangstür
 
 /*==PCF8574=================================================================================================*/
 Expander_PCF8574 relay;
@@ -338,7 +334,7 @@ void passwordReset() {
 
 void checkPassword() {
 	switch (usedkeypad) {
-		Serial.print(F("Checking password entry for: "));
+		// between switch and case is never executed!
 		case 0:
 			Serial.print(F("Light\n"));
 			// don't check if there is no password entered
@@ -597,24 +593,4 @@ void loop() {
 		}
 	#endif
 
-}
-
-void printWithHeader(String message, String source) {
-    digitalWrite(ctrlPin, MAX485_WRITE);
-    Serial.println(); Serial.print("!");
-    Serial.print(brainName); Serial.print(",");
-    Serial.print(source); Serial.print(",");
-    Serial.print(message); Serial.println(",Done.");
-    delay(50);
-    digitalWrite(ctrlPin, MAX485_READ);
-}
-
-void software_Reset() {
-    Serial.println(F("Restarting in"));
-    delay(50);
-    for (byte i = 3; i>0; i--) {
-        Serial.println(i);
-        delay(100);
-    }
-    asm volatile ("  jmp 0");
 }
