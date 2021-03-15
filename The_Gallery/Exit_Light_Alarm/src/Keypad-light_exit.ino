@@ -135,7 +135,7 @@ Expander_PCF8574 relay;
 //==========================================================================================================*/
 
 void print_serial_header() {
-    printWithHeader("!header_begin\n", "SYS");
+    printWithHeader("!header_begin", "SYS");
     printWithHeader(title, "SYS");
     printWithHeader(versionDate, "SYS");
     printWithHeader(version, "SYS");
@@ -250,7 +250,6 @@ void keypadEvent(KeypadEvent eKey) {
                             light_oled.print("         ");
                             light_oled.println(passLight.guess);
 #endif
-                            printWithHeader(" -> Code: ", "LIT");
                             printWithHeader(passLight.guess, "LIT");
                             break;
                         case 1:
@@ -263,7 +262,6 @@ void keypadEvent(KeypadEvent eKey) {
                             exit_oled.print("         ");
                             exit_oled.println(passExit.guess);
 #endif
-                            printWithHeader(" -> Code: ", "EXT");
                             printWithHeader(passExit.guess, "EXT");
                             break;
                     }
@@ -310,11 +308,11 @@ void passwordReset() {
     switch (usedkeypad) {
         case 0:
             passLight.reset();
-            printWithHeader("Resetting Password for: Light", "LIT");
+            printWithHeader("!Reset", "LIT");
             break;
         case 1:
             passExit.reset();
-            printWithHeader("Resetting Password for: Exit", "EXT");
+            printWithHeader("!Reset", "EXT");
             break;
     }
 }
