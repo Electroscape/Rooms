@@ -432,7 +432,6 @@ void RFID_alarm_check() {
     } else {
         if (rfid_ticks == rfid_ticks_required) {
             printWithHeader("Kompass entfernt", "ALA");
-            printWithHeader("!Correct", "ALA");
             Serial.print(F("compass removed, activating alarm\n"));
             relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
             rfid_ticks++;
