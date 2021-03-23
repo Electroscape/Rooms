@@ -99,7 +99,7 @@ const byte relayInitArray[] = {REL_EXIT_INIT, REL_ALARM_INIT, REL_LICHT_INIT, RE
 #ifndef OLED_DISABLE
 SSD1306AsciiWire light_oled;
 SSD1306AsciiWire exit_oled;
-const int oled_reset_after = 2000;
+const int keypad_reset_after = 2000;
 #endif
 
 /*==KEYPAD I2C==============================================================================================*/
@@ -465,11 +465,12 @@ bool oled_init() {
     exit_oled.setFont(Verdana12_bold);
     return true;
 }
+#endif
 
-void OLED_reset() {
+void keypad_reset() {
     int outdated = 0;
     for (int keypad_no = 0; keypad_no < 2; keypad_no++) {
-        if (millis() - update_timers[keypad_no] >= oled_reset_after) {
+        if (millis() - update_timers[keypad_no] >= keypad_reset_after) {
             outdated++;
         }
     }
@@ -496,7 +497,7 @@ void OLED_reset() {
         passwordReset();
     }
 }
-#endif
+
 /*
 
 
@@ -567,10 +568,8 @@ void loop() {
     wdt_reset();
     // Serial.println("keypad_update");
     keypad_update();
-#ifndef OLED_DISABLE
     // Serial.println("oled");
-    OLED_reset();
-#endif
+    keypad_reset();
     /*
 	checkPassword();
 	passwordReset();
