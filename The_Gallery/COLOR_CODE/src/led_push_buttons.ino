@@ -1,5 +1,5 @@
 /*=======================================================*/
-/*		2CP - TeamEscape - Engineering
+/**		2CP - TeamEscape - Engineering
  *		by Abdullah Saei & Martin Pek
  *
  *		v2.0 beta
@@ -184,7 +184,7 @@ void software_Reset() {
     asm volatile("  jmp 0");
 }
 
-/*
+/**
  * Initialize Serial and MAX485
  *
  * @param void
@@ -216,7 +216,7 @@ void OLED_Init() {
     i2c_scanner();
 }
 
-/*
+/**
  * Update flags and send heartpulse messages
  *
  * @param void
@@ -322,7 +322,7 @@ void OLED_textWrong() {
 /*=========================================================
 //===KEYPAD================================================
 //=======================================================*/
-/*
+/**
  * Initialize Keypad
  *
  * @param void
@@ -344,7 +344,7 @@ void Keypad_Init() {
     oled.println(F("ok."));
 }
 
-/*
+/**
  * Clear password after TIMEOUT and auto-evaluate when reaches password length
  *
  * @param void
@@ -368,7 +368,7 @@ void Keypad_Update() {
     }
 }
 
-/*
+/**
  * Listens to keypad inputs
  *
  * @param eKey Stores the pressed button
@@ -403,7 +403,7 @@ void keypadEvent(KeypadEvent eKey) {
     }
 }
 
-/*
+/**
  * Initialise 8 Relays on I2C PCF
  * 
  * @param void
@@ -428,7 +428,7 @@ bool relay_Init() {
     return true;
 }
 
-/*
+/**
  * Prints with the correct format
  *
  * @param message string in the message field,
@@ -452,7 +452,7 @@ void printWithHeader(String message, String source) {
     digitalWrite(ctrlPin, MAX485_READ);
 }
 
-/*
+/**
  * Evaluates guessed password
  *
  * @param void
@@ -480,7 +480,7 @@ void checkPassword() {
     }
 }
 
-/*
+/**
  * Clear password guess
  *
  * @param void
