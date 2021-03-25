@@ -99,7 +99,6 @@ const byte relayInitArray[] = {REL_EXIT_INIT, REL_ALARM_INIT, REL_LICHT_INIT, RE
 #ifndef OLED_DISABLE
 SSD1306AsciiWire light_oled;
 SSD1306AsciiWire exit_oled;
-const int keypad_reset_after = 2000;
 #endif
 
 /*==KEYPAD I2C==============================================================================================*/
@@ -117,6 +116,7 @@ char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3};  // Zeilen  - Messleitungen
 byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (abwechselnd HIGH)
 
+const int keypad_reset_after = 2000;
 static unsigned long update_timers[] = {millis(), millis()};
 
 Keypad_I2C LightKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, LIGHT_KEYPAD_ADD, PCF8574);
