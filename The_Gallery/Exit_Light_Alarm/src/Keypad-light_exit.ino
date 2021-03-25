@@ -85,14 +85,6 @@ enum REL_PIN {
 const enum REL_PIN relayPinArray[] = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
 const byte relayInitArray[] = {REL_EXIT_INIT, REL_ALARM_INIT, REL_LICHT_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
 
-// relay config
-#define REL_EXIT_PIN 0
-#define REL_ALARM_PIN 1
-#define REL_LICHT_PIN 2
-
-// Keypad Addresses
-#define LIGHT_KEYPAD_ADD 0x38 /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
-#define EXIT_KEYPAD_ADD 0x39  /* möglich sind 0x38, 39, 3A, 3B, 3D                         */
 
 /*==OLED====================================================================================================*/
 
@@ -396,7 +388,7 @@ bool RFID_init() {
                 Serial.print(F("Didn't find PN53x board\n"));
                 if (retries > 5) {
                     Serial.print(F("PN532 startup timed out, restarting\n"));
-                    software_Reset();
+                    softwareReset();
                 }
             } else {
                 Serial.print(F("Found chip PN5"));
