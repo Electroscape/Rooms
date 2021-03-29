@@ -81,7 +81,7 @@ static unsigned long update_timer = millis();
 Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574);
 
 // Passwort
-Password passKeypad = Password(makeKeymap("1708"));
+Password passKeypad = Password(makeKeymap("5314"));
 
 /*==PCF8574=================================================================================================*/
 Expander_PCF8574 relay;
@@ -211,8 +211,10 @@ bool keypad_init() {
 
 
 void passwordReset() {
-    passKeypad.reset();
-    printWithHeader("!Reset", "FPK");
+    if (strlen(passKeypad.guess) > 0) {
+        passKeypad.reset();
+        printWithHeader("!Reset", "FPK");
+    }
 }
 
 void checkPassword() {
@@ -260,10 +262,8 @@ void keypad_reset() {
     if (millis() - update_timer >= keypad_reset_after) {
 
         update_timer = millis();
-        Serial.print(F("Reset! \n"));
 
         if (strlen(passKeypad.guess) > 0) {
-            Serial.println("checkpass Light \n\n");
             checkPassword();
         } else {
             oled.clear();
