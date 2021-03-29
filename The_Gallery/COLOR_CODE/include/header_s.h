@@ -1,4 +1,4 @@
-/*
+/**
 * To configure a relay:
 *   - rename REL_X_PIN to informative name
 *   - rename and set REL_X_INIT with your init value
