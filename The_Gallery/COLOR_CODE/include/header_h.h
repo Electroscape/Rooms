@@ -10,6 +10,7 @@ String versionDate = "17.02.2021";
 String version = "version 1.0HH";
 String brainName = String("BrWheel");
 String relayCode = String("HID");
+const unsigned long heartbeatFrequency = 5000;
 
 //==KEYPAD I2C================================/
 const byte KEYPAD_ROWS = 1;  // Zeilen

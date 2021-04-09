@@ -10,6 +10,7 @@ String versionDate = "02.02.2021";
 String version = "version 1.0ST";
 String brainName = String("BrCOLOR");
 String relayCode = String("HID");
+const unsigned long heartbeatFrequency = 5000;
 
 //==KEYPAD I2C================================/
 const byte KEYPAD_ROWS = 1;  // Zeilen
@@ -18,6 +19,7 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
     {'R', 'G', 'B', 'W'}};
 
 // Passwort
+// char* sercet_password = (char*)"RGGBWGRBWG";
 char *secret_password = (char *)"RGBW";  // for testing Simple sample password
 
 unsigned long KeypadCodeResetSpan = 5000;  // Zeit bis Codereset

@@ -65,6 +65,8 @@ Expander_PCF8574 relay, LetKeypadWork;
 /*==Serial Printing===========================*/
 const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 
+unsigned long lastHeartbeat = millis();  
+
 /*================================================
 //===SETUP========================================
 //==============================================*/
@@ -85,10 +87,13 @@ void loop() {
     Keypad_Update();
 
     OLED_Update();
-    if (endGame)
-        printWithHeader("Game Ends waiting restart!", "SYS");
-    while (endGame) {
+
+    if (millis() - lastHeartbeat >= heartbeatFrequency) {
+        lastHeartbeat = millis();
+        printWithHeader("Hearthbeat", "SYS");
     }
+
+
 }
 
 /*===============================================
@@ -224,7 +229,6 @@ void OLED_Init() {
  */
 void OLED_Update() {
     if ((((millis() - UpdateOLEDAfterDelayTimer) > UpdateOLEDAfterDelay)) && !KeypadTyping) {
-        printWithHeader(passLight.guess, relayCode);
         UpdateOLED = true;
     }
 
@@ -239,7 +243,6 @@ void OLED_Update() {
             delay(1000);
             UpdateOLED = true;
             KeypadCodeCorrect = false;
-            endGame = true;
         } else if (KeypadCodeWrong) {
             OLED_smileySad();
             delay(1000);
@@ -467,6 +470,7 @@ void checkPassword() {
         UpdateOLED = true;
 
         printWithHeader("!Correct", relayCode);
+        printWithHeader("Game Complete", "SYS");
         relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
         magnetString = String("OFF");
         passwordReset();
