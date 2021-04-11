@@ -15,14 +15,16 @@
  */
 /*=======================================================*/
 #include "header_s.h"
+#include <stb_namespace.h>
+using namespace stb_namespace;
 
 /*==INCLUDE==============================================*/
 // I2C Port Expander
-#include "PCF8574.h"
+#include <PCF8574.h>
 
 // OLED
-#include "SSD1306Ascii.h"
-#include "SSD1306AsciiWire.h"
+#include <SSD1306Ascii.h>
+#include <SSD1306AsciiWire.h>
 
 // Keypad
 #include <Keypad.h>
@@ -65,8 +67,6 @@ Expander_PCF8574 relay, LetKeypadWork;
 /*==Serial Printing===========================*/
 const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 
-unsigned long lastHeartbeat = millis();  
-
 /*================================================
 //===SETUP========================================
 //==============================================*/
@@ -88,12 +88,7 @@ void loop() {
 
     OLED_Update();
 
-    if (millis() - lastHeartbeat >= heartbeatFrequency) {
-        lastHeartbeat = millis();
-        printWithHeader("Hearthbeat", "SYS");
-    }
-
-
+    heartbeat();
 }
 
 /*===============================================
@@ -408,9 +403,9 @@ void keypadEvent(KeypadEvent eKey) {
 
 /**
  * Initialise 8 Relays on I2C PCF
- * 
+ *
  * @param void
- * @return true when done 
+ * @return true when done
  */
 bool relay_Init() {
     Serial.println("initializing relay");
@@ -431,36 +426,13 @@ bool relay_Init() {
     return true;
 }
 
-/**
- * Prints with the correct format
- *
- * @param message string in the message field,
- *        source string the message source either relayCode or 'SYS'
- * @return void
- * @note switching pin for MAX485 control Write then Read
- */
-void printWithHeader(String message, String source) {
-    // turn Write mode on:
-    digitalWrite(ctrlPin, MAX485_WRITE);
-    Serial.println();
-    Serial.print("!");
-    Serial.print(brainName);
-    Serial.print(",");
-    Serial.print(source);
-    Serial.print(",");
-    Serial.print(message);
-    Serial.println(",Done.");
-    delay(50);
-    // turn Write mode off:
-    digitalWrite(ctrlPin, MAX485_READ);
-}
 
 /**
  * Evaluates guessed password
  *
  * @param void
  * @return void
- * @note it takes the action and sets the relay 
+ * @note it takes the action and sets the relay
  TODO: It should only evaluate and return true or false!!
  */
 void checkPassword() {
