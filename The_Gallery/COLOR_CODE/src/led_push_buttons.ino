@@ -64,14 +64,15 @@ Password passLight = Password(secret_password);  // Schaltet das Licht im Büro 
 /*==PCF8574===================================*/
 Expander_PCF8574 relay, LetKeypadWork;
 
-/*==Serial Printing===========================*/
-const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
+unsigned long lastHeartbeat = millis();  
 
 /*================================================
 //===SETUP========================================
 //==============================================*/
 void setup() {
-    Serial_Init();
+    brainSerialInit();
+    Serial.println(title);
+    Serial.println(version);
     OLED_Init();
     Keypad_Init();
     relay_Init();
@@ -88,7 +89,11 @@ void loop() {
 
     OLED_Update();
 
-    heartbeat();
+    if (millis() - lastHeartbeat >= heartbeatFrequency) {
+        lastHeartbeat = millis();
+        printWithHeader("Hearthbeat", "SYS");
+    }
+    // heartbeat();
 }
 
 /*===============================================
@@ -190,15 +195,7 @@ void software_Reset() {
  * @param void
  * @return void
  */
-void Serial_Init() {
-    Serial.begin(115200);
-    delay(1000);
-    // initialize MAX485 ctrl pin as an output
-    pinMode(ctrlPin, OUTPUT);
-    // print with header to set to the correct mode
-    printWithHeader("Setup Begin", "SYS");
-    Serial.println("\n");
-}
+
 
 /*===================================================
 //===OLED============================================
