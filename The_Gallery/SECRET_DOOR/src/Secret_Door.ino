@@ -97,40 +97,9 @@ void print_serial_header() {
     printWithHeader(version, "SYS");
 }
 
-void output_init() {
-    Serial.begin(115200);
-    Wire.begin();
-    print_serial_header();
-}
-
 /*============================================================================================================
 //===MOTHER===================================================================================================
 //==========================================================================================================*/
-
-bool i2c_scanner() {
-    Serial.println();
-    Serial.println(F("I2C scanner:"));
-    Serial.println(F("Scanning..."));
-    byte count = 0;
-    for (byte i = 8; i < 120; i++) {
-        Wire.beginTransmission(i);
-        if (Wire.endTransmission() == 0) {
-            Serial.print("Found address: ");
-            Serial.print(i, DEC);
-            Serial.print(" (0x");
-            Serial.print(i, HEX);
-            Serial.println(")");
-            count++;
-            delay(1);  // maybe unneeded?
-        }              // end of good response
-    }                  // end of for loop
-    Serial.println("Done.");
-    Serial.print("Found ");
-    Serial.print(count, DEC);
-    Serial.println(" device(s).");
-
-    return true;
-}
 
 bool relay_init() {
     Serial.println("initializing relay");
@@ -154,7 +123,6 @@ bool relay_init() {
 //==========================================================================================================*/
 
 void keypadEvent(KeypadEvent eKey) {
-    Serial.print(F("keypadevent on keypad"));
     KeyState state = IDLE;
 
     state = Keypad.getState();
@@ -213,14 +181,14 @@ bool keypad_init() {
 void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
-        printWithHeader("!Reset", "FPK");
+        printWithHeader("!Reset", relayCode);
     }
 }
 
 void checkPassword() {
     if (strlen(passKeypad.guess) < 1) return;
     if (passKeypad.evaluate()) {
-        printWithHeader("!Correct", "FPK");
+        printWithHeader("!Correct", relayCode);
         #ifndef OLED_DISABLE
             oled.clear();
             oled.setFont(Adafruit5x7);
@@ -231,7 +199,7 @@ void checkPassword() {
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
         delay(3000);
     } else {
-        printWithHeader("!Wrong", "FPK");
+        printWithHeader("!Wrong", relayCode);
         #ifndef OLED_DISABLE
             oled.println("    ACCESS DENIED!");
         #endif
@@ -274,14 +242,14 @@ void keypad_reset() {
 }
 
 void setup() {
-    output_init();
+    brainSerialInit();
     Serial.println("WDT endabled");
     // wdt_enable(WDTO_8S);
     wdt_reset();
 
     Serial.println("!setup_begin");
 
-    i2c_scanner();
+    i2cScanner();
 
 #ifndef OLED_DISABLE
     Serial.print(F("Oleds: ..."));

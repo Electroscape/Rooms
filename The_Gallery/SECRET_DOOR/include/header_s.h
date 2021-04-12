@@ -1,11 +1,11 @@
 #include "stb_namespace.h"
 
-String title = "Light & Exit & RFID S v0.3";
-String versionDate = "15.03.2021";
-String version = "version 1.65";
+String title = "Secret Door";
+String versionDate = "12.04.2021";
+String version = "version 1.0";
 
-String brainName = String("BrRFID");
-String relayCode = String("UVL");
+String brainName = String("BrSEC");
+String relayCode = String("FPK");
 
 // I2C Addresses
 // Relayboard und OLED
