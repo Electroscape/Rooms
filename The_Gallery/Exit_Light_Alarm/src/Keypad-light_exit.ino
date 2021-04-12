@@ -412,8 +412,8 @@ void RFID_alarm_check() {
     uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};
     uint8_t uidLength;
     uint8_t success = RFID_READERS[0].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-    Serial.print(F("RFID ticks: "));
-    Serial.println(rfid_ticks);
+    //Serial.print(F("RFID ticks: "));
+    //Serial.println(rfid_ticks);
     if (success) {
         if (rfid_ticks > 0) {
             printWithHeader("Kompass vorhanden", "ALA");
@@ -489,19 +489,6 @@ void keypad_reset() {
         passwordReset();
     }
 }
-
-/*
-
-
-void OLED_simple_bold_text(SSD1306AsciiWire oled, char str[]) {
-	oled.clear();
-	oled.setFont(Adafruit5x7);
-	oled.println();
-	oled.println();
-	oled.setFont(Arial_bold_14Verdana12_bold);
-	oled.println(str);
-}
-*/
 
 void setup() {
     output_init();
