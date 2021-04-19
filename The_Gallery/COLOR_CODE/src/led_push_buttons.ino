@@ -91,7 +91,7 @@ void loop() {
 
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
-        printWithHeader("Hearthbeat", "SYS");
+        printWithHeader(passLight.guess, relayCode);
     }
     // heartbeat();
 }
@@ -165,28 +165,6 @@ void i2c_scanner() {
     oled.println();
 
     delay(2000);
-}
-
-// Software Reset - Startet den Arduino neu
-void software_Reset() {
-    printWithHeader("RESTART", "SYS");
-    Serial.println("Expander Ports:");
-    //? Open all Relays before restart!! is it necessary?
-    for (int i = 0; i <= 7; i++) {
-        relay.pinMode(i, OUTPUT);
-        relay.digitalWrite(i, HIGH);
-    }
-    Serial.println("HIGH");
-    Serial.println(F("Neustart in"));
-    oled.clear();
-    oled.println("Neustart in");
-    delay(250);
-    for (byte i = 3; i > 0; i--) {
-        Serial.println(i);
-        oled.println(i);
-        delay(1000);
-    }
-    asm volatile("  jmp 0");
 }
 
 /**
