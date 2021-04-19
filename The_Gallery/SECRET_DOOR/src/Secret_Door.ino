@@ -3,9 +3,12 @@
  *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.5
- *		- use stb namespace
- *		- solve all warnings
- *		-
+ *		- Block brain after correct solution
+ *		- add heartbeat pulse if no input
+ *		- enable WDT
+ *		- add oled homescreen
+ *		- transit time between wrong and reset
+ *		- reformat header and relay config
  */
 /*==========================================================================================================*/
 
@@ -30,35 +33,8 @@ using namespace stb_namespace;
     SSD1306AsciiWire oled;
 #endif
 
-// relay BASICS
-#define REL_AMOUNT 8
-enum REL_PIN {
-    REL_1_PIN,  // 0 Door Opener
-    REL_2_PIN,  // 1 Buzzer
-    REL_3_PIN,  // 2
-    REL_4_PIN,  // 3
-    REL_5_PIN,  // 4
-    REL_6_PIN,  // 5
-    REL_7_PIN,  // 6
-    REL_8_PIN   // 7
-};
-
-
-#define REL_2_INIT 0
-#define REL_3_INIT 0
-#define REL_4_INIT 0
-#define REL_5_INIT 0
-#define REL_6_INIT 0
-#define REL_7_INIT 0
-#define REL_8_INIT 0
-
-const enum REL_PIN relayPinArray[] = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
-const byte relayInitArray[] = {REL_DOOR_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
-
 
 /*==OLED====================================================================================================*/
-
-
 const int keypad_reset_after = 2000;
 
 /*==KEYPAD I2C==============================================================================================*/
@@ -106,11 +82,7 @@ bool relay_init() {
     relay.begin(RELAY_I2C_ADD);
 
     for (int i = 0; i < REL_AMOUNT; i++) {
-        relay.pinMode(i, OUTPUT);
-        relay.digitalWrite(i, HIGH);
-    }
-
-    for (int i = 0; i < REL_AMOUNT; i++) {
+        relay.pinMode(relayPinArray[i], OUTPUT);
         relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
     }
 
@@ -127,15 +99,11 @@ void keypadEvent(KeypadEvent eKey) {
 
     state = Keypad.getState();
 
-    if (eKey) {
-        Serial.println(eKey);
-    };
-
     switch (state) {
         case PRESSED:
             update_timer = millis();
             Serial.print(F("Taste: "));
-            Serial.print(eKey);
+            Serial.println(eKey);
 
             switch (eKey) {
 
@@ -144,9 +112,6 @@ void keypadEvent(KeypadEvent eKey) {
                     break;
 
                 case '*':
-                    #ifndef OLED_DISABLE
-                        oled.clear();
-                    #endif
                     passwordReset();
                     break;
 
@@ -182,7 +147,19 @@ void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
         printWithHeader("!Reset", relayCode);
+        // Homescreen
+        #ifndef OLED_DISABLE
+            oledHomescreen();
+        #endif
     }
+}
+
+void oledHomescreen() {
+    oled.clear();
+    oled.setFont(Adafruit5x7);
+    oled.print("\n\n\n");
+    oled.setFont(Verdana12_bold);
+    oled.println("  Type your code..");
 }
 
 void checkPassword() {
@@ -197,12 +174,21 @@ void checkPassword() {
             oled.println("   ACCESS GRANTED!");
         #endif
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
-        delay(3000);
+        // Brain stuck after riddle solved
+        Serial.println("Riddle Solved, Please restart brain!");
+        // Block code
+        while (true)
+        {
+            wdt_reset();
+            delay(10);
+        }
     } else {
         printWithHeader("!Wrong", relayCode);
         #ifndef OLED_DISABLE
             oled.println("    ACCESS DENIED!");
         #endif
+        // transit time between wrong and reset statuses
+        delay(1000);
     }
     passwordReset();
 }
@@ -219,8 +205,7 @@ bool oled_init() {
     oled.begin(&SH1106_128x64, OLED_ADD);
     oled.set400kHz();
     oled.setScroll(true);
-    oled.clear();
-    oled.setFont(Verdana12_bold);  // Arial_bold_14
+    oledHomescreen();
     delay(1000);
     return true;
 }
@@ -228,13 +213,13 @@ bool oled_init() {
 
 void keypad_reset() {
     if (millis() - update_timer >= keypad_reset_after) {
-
         update_timer = millis();
 
         if (strlen(passKeypad.guess) > 0) {
             checkPassword();
         } else {
-            oled.clear();
+            // Act as heartbeat pulse
+            printWithHeader("", relayCode);
         }
 
         passwordReset();
@@ -244,7 +229,7 @@ void keypad_reset() {
 void setup() {
     brainSerialInit();
     Serial.println("WDT endabled");
-    // wdt_enable(WDTO_8S);
+    wdt_enable(WDTO_8S);
     wdt_reset();
 
     Serial.println("!setup_begin");
