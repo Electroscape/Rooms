@@ -14,11 +14,18 @@ from adafruit_pn532.i2c import PN532_I2C
 # I2C connection:
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# Non-hardware reset/request with I2C
-pn532 = PN532_I2C(i2c, debug=False)
 
-ic, ver, rev, support = pn532.firmware_version
-print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
+# keep trying to initialise the sensor
+while True:
+    try:
+        # Non-hardware reset/request with I2C
+        pn532 = PN532_I2C(i2c, debug=False)
+        ic, ver, rev, support = pn532.firmware_version
+        print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
+        break
+    except:
+        print("failed to start RFID")
+        sleep(1)
 
 # this delay avoids some problems after wakeup
 sleep(0.5)
@@ -31,8 +38,7 @@ poisoned_cards = ['VM']
 read_block = 4
 UV_light_pin = 4
 
-vid_command = 'omxplayer {0} --loop --no-osd --nodeinterlace --fps 60 &'
-pic_command = 'sudo fbi -a -T 1 --noverbose {0}.jpg &'
+vid_command = 'cvlc {0} -f --no-osd --loop &'
 
 UV_LIGHT_ON = GPIO.HIGH
 UV_LIGHT_OFF = GPIO.LOW
@@ -42,29 +48,26 @@ GPIO.output(UV_light_pin, UV_LIGHT_OFF)
 
 def wait_remove_card(uid):
     while uid:
-        print('Same Card Still there')
-        sleep(0.5)
+        # print('Same Card Still there')
+        # sleep(0.01)
         try:
-            uid = pn532.read_passive_target(timeout=0.5)
+            uid = pn532.read_passive_target()
         except RuntimeError:
             uid = None
 
 
 def scan_field():
-    count = 0
     while True:
         try:
-            uid = pn532.read_passive_target(timeout=0.5)
+            uid = pn532.read_passive_target()
         except RuntimeError:
             uid = None
-            sleep(0.5)
+            # sleep(0.01)
 
-        print('.', end="") if count <= 3 else print("", end="\r")
+        # print('.', end="") if count <= 3 else print("", end="\r")
         # Try again if no card is available.
-        if uid is None:
-            count = count + 1 if count < 6 else 0
-        else:
-            print('Found card with UID:', [hex(i) for i in uid])
+        if uid:
+            print('Found card')
             break
 
     return uid
@@ -75,8 +78,8 @@ def main():
     print('Welcome to Poison Scanner')
     # clean start
     # Kill all relavent applications
-    os.system("sudo pkill fbi")
-    os.system(pic_command.format("default"))
+    os.system("sudo pkill vlc")
+    os.system(vid_command.format("default.png"))
 
     print('Waiting Card')
 
@@ -84,32 +87,45 @@ def main():
         uid = scan_field()
 
         if uid:
+            os.system("sudo pkill vlc")
+            os.system(vid_command.format('analysis.mp4'))
+            GPIO.output(UV_light_pin, UV_LIGHT_ON)
             try:
                 data = pn532.ntag2xx_read_block(read_block)
                 print('Card found')
             except Exception:
                 data = b"XX"
 
-            read_data = data.decode('utf-8')[:2]
-            print('data is: {}'.format(read_data))
+            try:
+                read_data = data.decode('utf-8')[:2]
+            except Exception as e:
+                print(e)
+                read_data = "XX"
 
-            if read_data in poisoned_cards:
-                GPIO.output(UV_light_pin, UV_LIGHT_ON) 
-                print('Poisoned card')
-                os.system(pic_command.format(read_data))
-            elif read_data in non_poisoned_cards:
-                GPIO.output(UV_light_pin, UV_LIGHT_ON) 
-                print('Clean Card')
-                os.system(pic_command.format(read_data))
+            print('data is: {}'.format(read_data))
+            
+            if read_data in poisoned_cards + non_poisoned_cards:
+                # video is 7 seconds
+                sleep(5)
+                os.system("sudo pkill vlc")
             else:
                 print('Wrong Card')
-                os.system(pic_command.format("unknown"))
+                os.system("sudo pkill vlc")
+                os.system(vid_command.format("unknown.png"))
 
+            if read_data in poisoned_cards: 
+                print('Poisoned card')
+                os.system(vid_command.format('toxic.png'))
+            elif read_data in non_poisoned_cards:
+                print('Clean Card')
+                os.system(vid_command.format('nontoxic.png'))
+
+            #os.system("sudo pkill omxplayer")
             wait_remove_card(uid)
             print("Card Removed")
-            os.system("sudo pkill fbi")
             GPIO.output(UV_light_pin, UV_LIGHT_OFF) 
-            os.system(pic_command.format("default"))
+            os.system("sudo pkill vlc")
+            os.system(vid_command.format("default.png"))
 
 
 if __name__ == "__main__":
