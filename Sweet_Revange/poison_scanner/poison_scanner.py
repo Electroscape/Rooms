@@ -79,7 +79,7 @@ def main():
     # clean start
     # Kill all relavent applications
     os.system("sudo pkill vlc")
-    os.system(vid_command.format("default.png"))
+    os.system(vid_command.format("default_dots.MOV"))
 
     print('Waiting Card')
 
@@ -87,8 +87,6 @@ def main():
         uid = scan_field()
 
         if uid:
-            os.system("sudo pkill vlc")
-            os.system(vid_command.format('analysis.mp4'))
             GPIO.output(UV_light_pin, UV_LIGHT_ON)
             try:
                 data = pn532.ntag2xx_read_block(read_block)
@@ -105,19 +103,27 @@ def main():
             print('data is: {}'.format(read_data))
             
             if read_data in poisoned_cards + non_poisoned_cards:
-                # video is 7 seconds
-                sleep(5)
-                os.system("sudo pkill vlc")
+                pass
             else:
                 print('Wrong Card')
                 os.system("sudo pkill vlc")
                 os.system(vid_command.format("unknown.png"))
 
             if read_data in poisoned_cards: 
+                os.system("sudo pkill vlc")
+                os.system(vid_command.format('Giftscannervideo_toxic_mit_sound.mp4'))
+                # video is 18 seconds
+                sleep(18)
                 print('Poisoned card')
+                os.system("sudo pkill vlc")
                 os.system(vid_command.format('toxic.png'))
             elif read_data in non_poisoned_cards:
+                os.system("sudo pkill vlc")
+                os.system(vid_command.format('Giftscannervideo_nontoxic_mit_sound.mp4'))
+                # video is 7 seconds
+                sleep(18)
                 print('Clean Card')
+                os.system("sudo pkill vlc")
                 os.system(vid_command.format('nontoxic.png'))
 
             #os.system("sudo pkill omxplayer")
@@ -125,7 +131,7 @@ def main():
             print("Card Removed")
             GPIO.output(UV_light_pin, UV_LIGHT_OFF) 
             os.system("sudo pkill vlc")
-            os.system(vid_command.format("default.png"))
+            os.system(vid_command.format("default_dots.MOV"))
 
 
 if __name__ == "__main__":
