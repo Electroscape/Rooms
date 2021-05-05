@@ -1,11 +1,19 @@
 #include "stb_namespace.h"
 
-String title = "Light & Exit & RFID S v0.3";
-String versionDate = "15.03.2021";
-String version = "version 1.65";
+String title = "Light & Exit & RFID S v0.5";
+String versionDate = "05.05.2021";
+String version = "version 1.7";
 
-String brainName = String("BrRFID");
-String relayCode = String("UVL");
+String brainName = String("Br");
+
+enum riddles {
+    LIGHT_RIDDLE,
+    EXIT_RIDDLE,
+    ALARM_RIDDLE
+};
+
+String relayCodes[] = {String("LIT"), String("EXT"), String("ALA")};
+const unsigned long heartbeatFrequency = 5000;
 
 // I2C Addresses
 // Relayboard und OLED
@@ -20,6 +28,28 @@ String relayCode = String("UVL");
 // RFID
 
 // Relay config
-#define REL_EXIT_PIN 0
-#define REL_ALARM_PIN 1
-#define REL_LICHT_PIN 2
+#define REL_AMOUNT 3
+// relay BASICS
+enum REL_PIN {
+    REL_LICHT_PIN,  // 0 First room light
+    REL_1_PIN,      // 1 Light 2nd room
+    REL_2_PIN,      // 2 UV Light
+    REL_ALARM_PIN,  // 3 Alarm
+    REL_4_PIN,      // 4 Empty
+    REL_5_PIN,      // 5 Fireplace valve
+    REL_6_PIN,      // 6 valve holding the painting
+    REL_EXIT_PIN    // 7 Exit door lock
+};
+enum REL_INIT {
+    REL_LICHT_INIT = 1,  // DESCRIPTION OF THE RELAY WIRING
+    REL_1_INIT = 1,      // NC = Empty | COM = Light +Ve | NO = 230V
+    REL_2_INIT = 1,      // NC = Empty | COM = UV +Ve    | NO = 230V
+    REL_ALARM_INIT = 1,  // DESCRIPTION OF THE RELAY WIRING
+    REL_4_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
+    REL_5_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
+    REL_6_INIT = 1,      // NC = Empty | COM = 24V  | NO = Valve
+    REL_EXIT_INIT = 0    // DESCRIPTION OF THE RELAY WIRING
+};
+
+const enum REL_PIN relayPinArray[] = {REL_LICHT_PIN, REL_EXIT_PIN, REL_ALARM_PIN};
+const enum REL_INIT relayInitArray[] = {REL_LICHT_INIT, REL_EXIT_INIT, REL_ALARM_INIT};
