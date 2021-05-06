@@ -64,7 +64,7 @@ Password passLight = Password(secret_password);  // Schaltet das Licht im Büro 
 /*==PCF8574===================================*/
 Expander_PCF8574 relay, LetKeypadWork;
 
-unsigned long lastHeartbeat = millis();  
+unsigned long lastHeartbeat = millis();
 
 /*================================================
 //===SETUP========================================
@@ -73,7 +73,9 @@ void setup() {
     brainSerialInit();
     Serial.println(title);
     Serial.println(version);
+#ifndef OLED_DISABLE
     OLED_Init();
+#endif
     Keypad_Init();
     relay_Init();
 
@@ -86,19 +88,72 @@ void setup() {
 //===============================================*/
 void loop() {
     Keypad_Update();
-
-    OLED_Update();
+    #ifndef OLED_DISABLE
+        OLED_Update();
+    #endif
 
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
         printWithHeader(passLight.guess, relayCode);
     }
-    // heartbeat();
 }
 
 /*===============================================
 //===BASICS======================================
 //=============================================*/
+
+
+// I2C Scanner - scannt nach angeschlossenen I2C Geräten
+void i2c_scanner() {
+    Serial.println(F("I2C scanner:"));
+    Serial.println(F("Scanning..."));
+    byte wire_device_count = 0;
+
+    for (byte i = 8; i < 120; i++) {
+        Wire.beginTransmission(i);
+        if (Wire.endTransmission() == 0) {
+            Serial.print(F("Found address: "));
+            Serial.print(i, DEC);
+            Serial.print(F(" (0x"));
+            Serial.print(i, HEX);
+            Serial.print(F(")"));
+            if (i == 57) {
+                Serial.print(F(" -> Buttons"));
+            }
+            if (i == 60) {
+                Serial.print(F(" -> Display"));
+            }
+            if (i == 63) {
+                Serial.print(F(" -> Relay"));
+            }
+            Serial.println();
+            wire_device_count++;
+            delay(1);
+        }
+    }
+    Serial.print(F("Found "));
+    Serial.print(wire_device_count, DEC);
+    Serial.println(F(" device(s)."));
+
+    Serial.println();
+
+    delay(2000);
+}
+
+/**
+ * Initialize Serial and MAX485
+ *
+ * @param void
+ * @return void
+ */
+
+
+/*===================================================
+//===OLED============================================
+//=================================================*/
+
+#ifndef OLED_DISABLE
+
 void print_logo_infos(String progTitle) {
     oled.clear();
     oled.println();
@@ -117,67 +172,6 @@ void print_logo_infos(String progTitle) {
     oled.clear();
 }
 
-// I2C Scanner - scannt nach angeschlossenen I2C Geräten
-void i2c_scanner() {
-    Serial.println(F("I2C scanner:"));
-    Serial.println(F("Scanning..."));
-    oled.setFont(System5x7);
-    oled.println(F("I2C Scan..."));
-    byte wire_device_count = 0;
-
-    for (byte i = 8; i < 120; i++) {
-        Wire.beginTransmission(i);
-        if (Wire.endTransmission() == 0) {
-            Serial.print(F("Found address: "));
-            Serial.print(i, DEC);
-            Serial.print(F(" (0x"));
-            oled.print(F(" (0x"));
-            Serial.print(i, HEX);
-            oled.print(i, HEX);
-            Serial.print(F(")"));
-            oled.print(F(")"));
-            if (i == 57) {
-                Serial.print(F(" -> Buttons"));
-                oled.print(" -> Buttons");
-            }
-            if (i == 60) {
-                Serial.print(F(" -> Display"));
-                oled.print(" -> Display");
-            }
-            if (i == 63) {
-                Serial.print(F(" -> Relay"));
-                oled.print(" -> Relay");
-            }
-            Serial.println();
-            oled.println();
-            wire_device_count++;
-            delay(1);
-        }
-    }
-    Serial.print(F("Found "));
-    oled.print(F("Found "));
-    Serial.print(wire_device_count, DEC);
-    oled.print(wire_device_count, DEC);
-    Serial.println(F(" device(s)."));
-    oled.println(F(" device(s)."));
-
-    Serial.println();
-    oled.println();
-
-    delay(2000);
-}
-
-/**
- * Initialize Serial and MAX485
- *
- * @param void
- * @return void
- */
-
-
-/*===================================================
-//===OLED============================================
-//=================================================*/
 void OLED_Init() {
     Wire.begin();
 
@@ -191,12 +185,6 @@ void OLED_Init() {
     i2c_scanner();
 }
 
-/**
- * Update flags and send heartpulse messages
- *
- * @param void
- * @return void
- */
 void OLED_Update() {
     if ((((millis() - UpdateOLEDAfterDelayTimer) > UpdateOLEDAfterDelay)) && !KeypadTyping) {
         UpdateOLED = true;
@@ -291,6 +279,7 @@ void OLED_textWrong() {
     oled.println();
     oled.println(F("      FALSCH :("));
 }
+#endif
 
 /*=========================================================
 //===KEYPAD================================================
@@ -334,9 +323,11 @@ void Keypad_Update() {
 
     if (strlen((passLight.guess)) == strlen(secret_password) && !endGame) {
         UpdateOLED = true;
-        OLED_Update();
-        // Display last character for some time
-        delay(KeypadWaitAfterCodeInput);
+        #ifndef OLED_DISABLE
+            // this is really slowing down the input since it has a 1s delays
+            // do not deploy without OLED_DISABLE
+            OLED_Update();
+        #endif
         checkPassword();
     }
 }

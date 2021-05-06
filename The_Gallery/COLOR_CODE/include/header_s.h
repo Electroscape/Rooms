@@ -32,6 +32,8 @@ unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
 #define MAX485_READ LOW
 #define MAX485_WRITE HIGH
 
+#define OLED_DISABLE 1
+
 // Standards der Adressierung (Konvention)
 #define RELAY_I2C_ADD 0x3F   // Relay Expander																							*/
 #define OLED_I2C_ADD 0x3C    // Ist durch Hardware des OLEDs vorgegeben
