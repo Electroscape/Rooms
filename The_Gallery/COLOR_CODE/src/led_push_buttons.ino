@@ -10,8 +10,9 @@
  *
  */
 /*=======================================================*/
-#include "header_s.h"
 #include <stb_namespace.h>
+
+#include "header_s.h"
 using namespace stb_namespace;
 
 /*==INCLUDE==============================================*/
@@ -47,7 +48,7 @@ bool KeypadCodeCorrect = false;
 bool KeypadCodeWrong = false;
 bool endGame = false;                    // Only true when correct solution after smiley face
 unsigned long KeypadCodeResetTimer = 0;  // ResetTimer
-const int OledWaitLastCharacter = 500;  // waiting time to show last character
+const int OledWaitLastCharacter = 500;   // waiting time to show last character
 
 Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins,
                     KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
@@ -340,8 +341,10 @@ void checkPassword() {
         KeypadCodeWrong = true;
 
         printWithHeader("!Wrong", relayCode);
+#ifndef OLED_DISABLE
         // Update OLED before reset
         OLED_keypadscreen();
+#endif
         passwordReset();
     }
 }
