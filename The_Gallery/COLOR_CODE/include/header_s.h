@@ -2,11 +2,12 @@
 * To configure a relay:
 *   - rename REL_X_PIN to informative name
 *   - rename and set REL_X_INIT with your init value
+*   - create array with the used pins and benefit from loops :D
 */
 #pragma once
 
 String title = "GL_ST_COLOR_CODE";
-String versionDate = "02.02.2021";
+String versionDate = "10.05.2021";
 String version = "version 1.0ST";
 String brainName = String("BrCOLOR");
 String relayCode = String("HID");
@@ -32,7 +33,8 @@ unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
 #define MAX485_READ LOW
 #define MAX485_WRITE HIGH
 
-#define OLED_DISABLE 1
+// by default enabled
+//#define OLED_DISABLE 1
 
 // Standards der Adressierung (Konvention)
 #define RELAY_I2C_ADD 0x3F   // Relay Expander																							*/
@@ -65,21 +67,8 @@ enum REL_INIT {
 const int UpdateOLEDAfterDelay = 5000;  // Zeit, bis Display kurz flackert als Online Signal
 
 // == constants
+#define REL_AMOUNT 1
 const enum REL_PIN relayPinArray[] = {
-    REL_0_PIN,
-    REL_1_PIN,
-    REL_2_PIN,
-    REL_3_PIN,
-    REL_4_PIN,
-    REL_5_PIN,
-    REL_PIC_VALVE_PIN,
-    REL_7_PIN};
+    REL_PIC_VALVE_PIN};
 const byte relayInitArray[] = {
-    REL_0_INIT,
-    REL_1_INIT,
-    REL_2_INIT,
-    REL_3_INIT,
-    REL_4_INIT,
-    REL_5_INIT,
-    REL_PIC_VALVE_INIT,
-    REL_7_INIT};
+    REL_PIC_VALVE_INIT};

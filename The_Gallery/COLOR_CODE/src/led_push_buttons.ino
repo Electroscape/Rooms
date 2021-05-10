@@ -3,14 +3,10 @@
  *		by Abdullah Saei & Martin Pek
  *
  *		v2.0 beta
+ *      - Logic separation OLED and keypad
+ *		- Use OLED SH1106
+ *      - Remove deprecations
  *      - Block after correct solution
- *      - Use standard relay init
- *      - Separete Header
- *		- Modified Serial prints
- *
- * TODO:
- * 		- Add Header comments on each function
- * 		- Check deprecations
  *
  */
 /*=======================================================*/
@@ -34,10 +30,6 @@ using namespace stb_namespace;
 // Password
 #include <Password.h>
 
-/*==DEFINE====================================*/
-// uncomment to use
-#define DEBUGMODE 0
-
 /*==OLED======================================*/
 SSD1306AsciiWire oled;
 bool UpdateOLED = true;
@@ -53,9 +45,9 @@ byte KeypadColPins[KEYPAD_COLS] = {0, 1, 2, 3};  // Spalten - Steuerleitungen (a
 bool KeypadTyping = false;
 bool KeypadCodeCorrect = false;
 bool KeypadCodeWrong = false;
-bool endGame = false;                      // Only true when correct solution after smiley face
-unsigned long KeypadCodeResetTimer = 0;    // ResetTimer
-const int KeypadWaitAfterCodeInput = 500;  // warten, wie lang der Code noch angezeigt wird, bis er ausgewertet wird
+bool endGame = false;                    // Only true when correct solution after smiley face
+unsigned long KeypadCodeResetTimer = 0;  // ResetTimer
+const int OledWaitLastCharacter = 500;  // waiting time to show last character
 
 Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins,
                     KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
@@ -73,6 +65,9 @@ void setup() {
     brainSerialInit();
     Serial.println(title);
     Serial.println(version);
+
+    i2cScanner();
+
 #ifndef OLED_DISABLE
     OLED_Init();
 #endif
@@ -87,66 +82,26 @@ void setup() {
 //===LOOP==========================================
 //===============================================*/
 void loop() {
-    Keypad_Update();
-    #ifndef OLED_DISABLE
-        OLED_Update();
-    #endif
-
+    // Heartbeat message
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
         printWithHeader(passLight.guess, relayCode);
     }
-}
 
-/*===============================================
-//===BASICS======================================
-//=============================================*/
+    Keypad_Update();
+#ifndef OLED_DISABLE
+    OLED_Update();
+#endif
 
-
-// I2C Scanner - scannt nach angeschlossenen I2C Geräten
-void i2c_scanner() {
-    Serial.println(F("I2C scanner:"));
-    Serial.println(F("Scanning..."));
-    byte wire_device_count = 0;
-
-    for (byte i = 8; i < 120; i++) {
-        Wire.beginTransmission(i);
-        if (Wire.endTransmission() == 0) {
-            Serial.print(F("Found address: "));
-            Serial.print(i, DEC);
-            Serial.print(F(" (0x"));
-            Serial.print(i, HEX);
-            Serial.print(F(")"));
-            if (i == 57) {
-                Serial.print(F(" -> Buttons"));
-            }
-            if (i == 60) {
-                Serial.print(F(" -> Display"));
-            }
-            if (i == 63) {
-                Serial.print(F(" -> Relay"));
-            }
-            Serial.println();
-            wire_device_count++;
-            delay(1);
+    // Block the arduino if correct solution
+    if (endGame) {
+        printWithHeader("Game Complete", "SYS");
+        Serial.println("End Game, Please restart the arduino!");
+        while (true) {
+            delay(100);
         }
     }
-    Serial.print(F("Found "));
-    Serial.print(wire_device_count, DEC);
-    Serial.println(F(" device(s)."));
-
-    Serial.println();
-
-    delay(2000);
 }
-
-/**
- * Initialize Serial and MAX485
- *
- * @param void
- * @return void
- */
-
 
 /*===================================================
 //===OLED============================================
@@ -154,7 +109,7 @@ void i2c_scanner() {
 
 #ifndef OLED_DISABLE
 
-void print_logo_infos(String progTitle) {
+void print_logo_infos() {
     oled.clear();
     oled.println();
     oled.println();
@@ -175,14 +130,12 @@ void print_logo_infos(String progTitle) {
 void OLED_Init() {
     Wire.begin();
 
-    oled.begin(&Adafruit128x64, OLED_I2C_ADD);
+    oled.begin(&SH1106_128x64, OLED_I2C_ADD);
     oled.set400kHz();
     oled.setScroll(true);
     oled.setFont(System5x7);
 
-    print_logo_infos(title);
-
-    i2c_scanner();
+    print_logo_infos();
 }
 
 void OLED_Update() {
@@ -194,19 +147,19 @@ void OLED_Update() {
         UpdateOLEDAfterDelayTimer = millis();
         UpdateOLED = false;
 
-        if (KeypadTyping) {
-            OLED_keypadscreen();
-        } else if (KeypadCodeCorrect) {
+        //display passcode typing
+        OLED_keypadscreen();
+
+        if (KeypadCodeCorrect) {
             OLED_smileySmile();
-            delay(1000);
-            UpdateOLED = true;
-            KeypadCodeCorrect = false;
+            endGame = true;
         } else if (KeypadCodeWrong) {
             OLED_smileySad();
+            //some time to show the sad face :(
             delay(1000);
             UpdateOLED = true;
             KeypadCodeWrong = false;
-        } else {
+        } else if (!KeypadTyping) {
             OLED_homescreen();
         }
     }
@@ -224,6 +177,7 @@ void OLED_homescreen() {
 
 // Update Oled with keypad typing
 void OLED_keypadscreen() {
+    if (strlen(passLight.guess) < 1) return;
     oled.clear();
     oled.setFont(Adafruit5x7);
     oled.println();
@@ -231,13 +185,14 @@ void OLED_keypadscreen() {
     oled.println();
     oled.print(F("  "));
     oled.print(F("  "));
-    for (unsigned int i = 0; i < strlen((passLight.guess)) + 1; i++) {
+    for (unsigned int i = 0; i < strlen((passLight.guess)); i++) {
         oled.print(passLight.guess[i]);
         oled.print(F(" "));
     }
 }
 
 void OLED_smileySmile() {
+    delay(OledWaitLastCharacter);
     oled.setFont(Adafruit5x7);
     oled.clear();
     oled.println(F("        _____     "));
@@ -250,7 +205,7 @@ void OLED_smileySmile() {
 }
 
 void OLED_smileySad() {
-    delay(KeypadWaitAfterCodeInput);
+    delay(OledWaitLastCharacter);
     oled.setFont(Adafruit5x7);
     oled.clear();
     oled.println(F("        _____     "));
@@ -260,24 +215,6 @@ void OLED_smileySad() {
     oled.println(F("    |    ___    | "));
     oled.println(F("     \\  /   \\  /"));
     oled.print(F("      '._____.'   "));
-}
-
-void OLED_textCorrect() {
-    oled.clear();
-    oled.setFont(Adafruit5x7);
-    oled.println();
-    oled.setFont(Arial_bold_14);
-    oled.println();
-    oled.println(F("     RICHTIG  :)"));
-}
-
-void OLED_textWrong() {
-    oled.clear();
-    oled.setFont(Adafruit5x7);
-    oled.println();
-    oled.setFont(Arial_bold_14);
-    oled.println();
-    oled.println(F("      FALSCH :("));
 }
 #endif
 
@@ -298,12 +235,10 @@ void Keypad_Init() {
         LetKeypadWork.digitalWrite(i, HIGH);
     }
     delay(100);
-    oled.print(F("Keypad "));
     MyKeypad.addEventListener(keypadEvent);  // Event Listener erstellen
     MyKeypad.begin(makeKeymap(KeypadKeys));
     MyKeypad.setHoldTime(5000);
     MyKeypad.setDebounceTime(KeypadDebounceTime);
-    oled.println(F("ok."));
 }
 
 /**
@@ -316,18 +251,10 @@ void Keypad_Update() {
     MyKeypad.getKey();
     if ((millis() - KeypadCodeResetTimer > KeypadCodeResetSpan) && KeypadTyping) {
         printWithHeader("!Reset", relayCode);
-        oled.clear();
-        oled.println("Reset Passwort");
         passwordReset();
     }
 
-    if (strlen((passLight.guess)) == strlen(secret_password) && !endGame) {
-        UpdateOLED = true;
-        #ifndef OLED_DISABLE
-            // this is really slowing down the input since it has a 1s delays
-            // do not deploy without OLED_DISABLE
-            OLED_Update();
-        #endif
+    if (strlen((passLight.guess)) == strlen(secret_password)) {
         checkPassword();
     }
 }
@@ -378,7 +305,7 @@ bool relay_Init() {
     relay.begin(RELAY_I2C_ADD);
 
     // init all 8,, they are physically disconnected anyways
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < REL_AMOUNT; i++) {
         relay.pinMode(relayPinArray[i], OUTPUT);
         relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
         Serial.print("     ");
@@ -392,7 +319,6 @@ bool relay_Init() {
     return true;
 }
 
-
 /**
  * Evaluates guessed password
  *
@@ -402,22 +328,20 @@ bool relay_Init() {
  TODO: It should only evaluate and return true or false!!
  */
 void checkPassword() {
+    KeypadTyping = false;
+    UpdateOLED = true;
     if (passLight.evaluate()) {
         KeypadCodeCorrect = true;
-        KeypadTyping = false;
-        UpdateOLED = true;
 
         printWithHeader("!Correct", relayCode);
-        printWithHeader("Game Complete", "SYS");
         relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
         magnetString = String("OFF");
-        passwordReset();
     } else {
         KeypadCodeWrong = true;
-        KeypadTyping = false;
-        UpdateOLED = true;
 
         printWithHeader("!Wrong", relayCode);
+        // Update OLED before reset
+        OLED_keypadscreen();
         passwordReset();
     }
 }
