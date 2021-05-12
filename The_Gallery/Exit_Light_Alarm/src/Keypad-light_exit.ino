@@ -265,7 +265,6 @@ void passwordReset(int riddle) {
 #ifndef OLED_DISABLE
     oledHomescreen(&oleds[riddle]);
 #endif
-    printWithHeader("!Reset", relayCodes[riddle]);
 }
 
 /**
@@ -449,6 +448,7 @@ void keypad_reset() {
                 // do nothing if riddle is already solved
                 continue;
             } else if (strlen(passwords[keypad_no].guess) > 0) {
+                printWithHeader("!Reset", relayCodes[keypad_no]);
                 Serial.print("!Timeout ");
                 Serial.println(keypad_no);
                 usedkeypad = keypad_no;
