@@ -11,7 +11,7 @@ enum riddles {
     EXIT_RIDDLE,
     ALARM_RIDDLE
 };
-
+char *secret_passwords[] = {(char *)"1708", (char *)"2381984"};
 String relayCodes[] = {String("LIT"), String("EXT"), String("ALA")};
 const unsigned long heartbeatFrequency = 5000;
 

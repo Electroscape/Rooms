@@ -3,6 +3,7 @@
  *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.7
+ *		- Auto-check when reachs password length
  *		- Block after correct solution
  *		- Heartbeat messages
  *		- C++11 arrays coding style
@@ -90,7 +91,8 @@ Keypad_I2C keypads[] = {Keypad_I2C(makeKeymap(KeypadKeys), KeypadRowPins, Keypad
 static int usedkeypad = -1;
 
 // Passwort
-Password passwords[] = {Password(makeKeymap("1708")), Password(makeKeymap("2381984"))};
+Password passwords[] = {Password(secret_passwords[LIGHT_RIDDLE]),
+                        Password(secret_passwords[EXIT_RIDDLE])};
 
 // endgame flags
 bool endgame[] = {false, false};
@@ -199,6 +201,9 @@ void keypadEvent(KeypadEvent eKey) {
         default:
             break;
     }
+    if (strlen(passwords[usedkeypad].guess) == strlen(secret_passwords[usedkeypad])) {
+        checkPassword();
+    }
 }
 
 /**
@@ -264,9 +269,9 @@ void passwordReset(int riddle) {
 }
 
 /**
-    * Checks the password and update the flags
-    * Makes relays action and block the game 
-    * Updates the OLEDS
+    * - Checks the password and update the flags 
+    * - Makes relays action and block the game 
+    * - Updates the OLEDS
     * 
     * @return void
     * @param void void
@@ -297,11 +302,10 @@ void checkPassword() {
             relay.digitalWrite(relayPinArray[ALARM_RIDDLE], relayInitArray[ALARM_RIDDLE]);
             // Block arduino after correct solution
             Serial.println("End Game, Please restart arduino!");
-            while (true)
-            {
+            while (true) {
                 wdt_reset();
                 delay(1000);
-            }  
+            }
         }
     } else {
         printWithHeader("!Wrong", relayCodes[usedkeypad]);
