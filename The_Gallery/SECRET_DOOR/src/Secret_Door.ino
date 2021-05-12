@@ -3,12 +3,12 @@
  *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.5
+ *		- Reset only on timeout
+ *		- Autocheck once reaches password length
  *		- Block brain after correct solution
  *		- add heartbeat pulse if no input
  *		- enable WDT
  *		- add oled homescreen
- *		- transit time between wrong and reset
- *		- reformat header and relay config
  */
 /*==========================================================================================================*/
 
@@ -28,14 +28,12 @@ using namespace stb_namespace;
 // I2C Port Expander
 #include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
+/*==OLED====================================================================================================*/
 #ifndef OLED_DISABLE
-    #include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
-    SSD1306AsciiWire oled;
+#include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
+SSD1306AsciiWire oled;
 #endif
 
-
-/*==OLED====================================================================================================*/
-const int keypad_reset_after = 2000;
 
 /*==KEYPAD I2C==============================================================================================*/
 const byte KEYPAD_ROWS = 4;  // Zeilen
@@ -53,11 +51,12 @@ byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3};  // Zeilen  - Messleitungen
 byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (abwechselnd HIGH)
 
 static unsigned long update_timer = millis();
+const int keypad_reset_after = 3000;
 
 Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574);
 
 // Passwort
-Password passKeypad = Password(makeKeymap("5314"));
+Password passKeypad = Password(secret_password);
 
 /*==PCF8574=================================================================================================*/
 Expander_PCF8574 relay;
@@ -106,7 +105,6 @@ void keypadEvent(KeypadEvent eKey) {
             Serial.println(eKey);
 
             switch (eKey) {
-
                 case '#':
                     checkPassword();
                     break;
@@ -117,22 +115,26 @@ void keypadEvent(KeypadEvent eKey) {
 
                 default:
                     passKeypad.append(eKey);
-                    #ifndef OLED_DISABLE
-                        oled.clear();
-                        oled.setFont(Adafruit5x7);
-                        oled.print("\n\n\n");
-                        oled.setFont(Verdana12_bold);
-                        oled.print("         ");
-                        oled.println(passKeypad.guess);
-                    #endif
+#ifndef OLED_DISABLE
+                    oled.clear();
+                    oled.setFont(Adafruit5x7);
+                    oled.print("\n\n\n");
+                    oled.setFont(Verdana12_bold);
+                    oled.print("         ");
+                    oled.println(passKeypad.guess);
+#endif
                     printWithHeader(passKeypad.guess, "FPK");
                     break;
-            } break;
+            }
+            break;
 
-        default: break;
+        default:
+            break;
+    }
+    if (strlen(passKeypad.guess) == strlen(secret_password)) {
+        checkPassword();
     }
 }
-
 
 bool keypad_init() {
     Keypad.addEventListener(keypadEvent);  // Event Listener erstellen
@@ -142,15 +144,13 @@ bool keypad_init() {
     return true;
 }
 
-
 void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
-        printWithHeader("!Reset", relayCode);
-        // Homescreen
-        #ifndef OLED_DISABLE
-            oledHomescreen();
-        #endif
+// Homescreen
+#ifndef OLED_DISABLE
+        oledHomescreen();
+#endif
     }
 }
 
@@ -166,33 +166,31 @@ void checkPassword() {
     if (strlen(passKeypad.guess) < 1) return;
     if (passKeypad.evaluate()) {
         printWithHeader("!Correct", relayCode);
-        #ifndef OLED_DISABLE
-            oled.clear();
-            oled.setFont(Adafruit5x7);
-            oled.print("\n\n\n");
-            oled.setFont(Verdana12_bold);
-            oled.println("   ACCESS GRANTED!");
-        #endif
+#ifndef OLED_DISABLE
+        oled.clear();
+        oled.setFont(Adafruit5x7);
+        oled.print("\n\n\n");
+        oled.setFont(Verdana12_bold);
+        oled.println("   ACCESS GRANTED!");
+#endif
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
         // Brain stuck after riddle solved
         Serial.println("Riddle Solved, Please restart brain!");
         // Block code
-        while (true)
-        {
+        while (true) {
             wdt_reset();
             delay(10);
         }
     } else {
         printWithHeader("!Wrong", relayCode);
-        #ifndef OLED_DISABLE
-            oled.println("    ACCESS DENIED!");
-        #endif
+#ifndef OLED_DISABLE
+        oled.println("    ACCESS DENIED!");
+#endif
         // transit time between wrong and reset statuses
         delay(1000);
     }
     passwordReset();
 }
-
 
 /*============================================================================================================
 //===OLED=====================================================================================================
@@ -216,6 +214,8 @@ void keypad_reset() {
         update_timer = millis();
 
         if (strlen(passKeypad.guess) > 0) {
+            printWithHeader("!Reset", relayCode);
+            Serial.println("!Timeout");
             checkPassword();
         } else {
             // Act as heartbeat pulse
