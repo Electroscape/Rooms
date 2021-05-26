@@ -3,6 +3,7 @@
  *		by Abdullah Saei & Martin Pek
  *
  *		v2.0 beta
+ *      - Accept passwords longer than length
  *      - Logic separation OLED and keypad
  *		- Use OLED SH1106
  *      - Remove deprecations
@@ -35,7 +36,6 @@ using namespace stb_namespace;
 SSD1306AsciiWire oled;
 bool UpdateOLED = true;
 unsigned long UpdateOLEDAfterDelayTimer = 0;
-String magnetString = String("ON");
 
 // Konfiguration fuer Sparkfun-Keypads
 // Keypad 1 2 3 4 5 6 7
@@ -129,13 +129,10 @@ void print_logo_infos() {
 }
 
 void OLED_Init() {
-    Wire.begin();
-
     oled.begin(&SH1106_128x64, OLED_I2C_ADD);
     oled.set400kHz();
     oled.setScroll(true);
     oled.setFont(System5x7);
-
     print_logo_infos();
 }
 
@@ -161,19 +158,17 @@ void OLED_Update() {
             UpdateOLED = true;
             KeypadCodeWrong = false;
         } else if (!KeypadTyping) {
-            OLED_homescreen();
+            oledHomescreen();
         }
     }
 }
 
-void OLED_homescreen() {
+void oledHomescreen() {
     oled.clear();
     oled.setFont(Adafruit5x7);
-    oled.println();
-    oled.setFont(Arial_bold_14);
-    oled.println();
-    oled.print(F("  Magnet: "));
-    oled.println(magnetString);
+    oled.print("\n\n\n");
+    oled.setFont(Verdana12_bold);
+    oled.println("  Type your code..");
 }
 
 // Update Oled with keypad typing
@@ -185,11 +180,7 @@ void OLED_keypadscreen() {
     oled.setFont(Arial_bold_14);
     oled.println();
     oled.print(F("  "));
-    oled.print(F("  "));
-    for (unsigned int i = 0; i < strlen((passLight.guess)); i++) {
-        oled.print(passLight.guess[i]);
-        oled.print(F(" "));
-    }
+    oled.print(passLight.guess);
 }
 
 void OLED_smileySmile() {
@@ -243,7 +234,7 @@ void Keypad_Init() {
 }
 
 /**
- * Clear password after TIMEOUT and auto-evaluate when reaches password length
+ * Evaluates password after TIMEOUT and makes relay action
  *
  * @param void
  * @return void
@@ -251,12 +242,11 @@ void Keypad_Init() {
 void Keypad_Update() {
     MyKeypad.getKey();
     if ((millis() - KeypadCodeResetTimer > KeypadCodeResetSpan) && KeypadTyping) {
-        printWithHeader("!Reset", relayCode);
-        passwordReset();
-    }
-
-    if (strlen((passLight.guess)) == strlen(secret_password)) {
-        checkPassword();
+        if (checkPassword()) {
+            relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
+        } else {
+            printWithHeader("!Reset", relayCode);
+        }
     }
 }
 
@@ -324,22 +314,18 @@ bool relay_Init() {
  * Evaluates guessed password
  *
  * @param void
- * @return void
- * @note it takes the action and sets the relay
- TODO: It should only evaluate and return true or false!!
+ * @return (bool) true if correct password, false otherwise
+ * @remark It only evaluates and return true or false!!
  */
-void checkPassword() {
+bool checkPassword() {
+    bool result = passLight.evaluate();
     KeypadTyping = false;
     UpdateOLED = true;
-    if (passLight.evaluate()) {
+    if (result) {
         KeypadCodeCorrect = true;
-
         printWithHeader("!Correct", relayCode);
-        relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
-        magnetString = String("OFF");
     } else {
         KeypadCodeWrong = true;
-
         printWithHeader("!Wrong", relayCode);
 #ifndef OLED_DISABLE
         // Update OLED before reset
@@ -347,6 +333,7 @@ void checkPassword() {
 #endif
         passwordReset();
     }
+    return result;
 }
 
 /**
