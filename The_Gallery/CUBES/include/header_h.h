@@ -50,7 +50,7 @@ enum REL_INIT {
 
 //Cards Data
 #define RFID_SOLUTION_SIZE  3
-static char RFID_solutions[4][RFID_SOLUTION_SIZE]  = {"AH", "SD", "GF", "PA"}; //
+char const *RFID_solutions[RFID_AMOUNT] = {"AH", "SD", "GF", "PA"}; //
 
 
 const uint16_t UpdateSignalAfterDelay = 5000;         /* Zeit, bis Serial print als Online Signal			*/
