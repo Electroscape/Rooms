@@ -1,7 +1,7 @@
 /**
 * To configure a relay:
 *   - rename REL_X_PIN to informative name
-*   - rename and set REL_X_INIT with your init value 
+*   - rename and set REL_X_INIT with your init value
 */
 #pragma once
 
@@ -34,6 +34,7 @@ unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
 // Standards der Adressierung (Konvention)
 #define RELAY_I2C_ADD 0x3F   // Relay Expander																							*/
 #define OLED_I2C_ADD 0x3C    // Ist durch Hardware des OLEDs vorgegeben
+#define LED_I2C_ADD 0x38  // möglich sind 0x38, 39, 3A, 3B, 3D
 #define KEYPAD_I2C_ADD 0x39  // möglich sind 0x38, 39, 3A, 3B, 3D
 
 // RELAY
@@ -58,6 +59,16 @@ enum REL_INIT {
     REL_7_INIT = 1,                 // DESCRIPTION OF THE RELAY WIRING
     REL_8_INIT = 1                  // DESCRIPTION OF THE RELAY WIRING
 };
+
+// LEDs
+
+enum LED_PIN {
+    RED_LED_PIN,
+    GREEN_LED_PIN
+};
+
+const int blink_amount = 3;
+const unsigned long blink_delay = 150;
 
 const int UpdateOLEDAfterDelay = 5000;  // Zeit, bis Display kurz flackert als Online Signal
 

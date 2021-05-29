@@ -55,7 +55,7 @@ Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins,
 Password passLight = Password(secret_password);  // Schaltet das Licht im Büro an
 
 /*==PCF8574===================================*/
-Expander_PCF8574 relay, LetKeypadWork;
+Expander_PCF8574 relay, LetKeypadWork, leds;
 
 unsigned long lastHeartbeat = millis();
 
@@ -291,6 +291,25 @@ void keypadEvent(KeypadEvent eKey) {
  * @param void
  * @return true when done
  */
+// small LEDs that are
+bool led_init() {
+    leds.begin(LED_I2C_ADD);
+    for (int i = 0; i < 8; i++) {
+        leds.pinMode(i, OUTPUT);
+        leds.digitalWrite(i, HIGH);
+    };
+}
+
+void blinkLed(byte led_no) {
+    for (int i = 0; i < blink_amount; i++) {
+        if (i > 0) { delay(blink_delay); }
+        // good question is what datatype is pin ... 
+        leds.digitalWrite(led_no, LOW);
+        delay(blink_delay);
+        leds.digitalWrite(led_no, HIGH);
+    }
+}
+
 bool relay_Init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
@@ -324,9 +343,11 @@ bool checkPassword() {
     if (result) {
         KeypadCodeCorrect = true;
         printWithHeader("!Correct", relayCode);
+        blinkLed(GREEN_LED_PIN);
     } else {
         KeypadCodeWrong = true;
         printWithHeader("!Wrong", relayCode);
+        blinkLed(GREEN_LED_PIN);
 #ifndef OLED_DISABLE
         // Update OLED before reset
         OLED_keypadscreen();
