@@ -1,3 +1,4 @@
+#pragma once
 #include "stb_namespace.h"
 
 String title = "Light & Exit & RFID S v0.5";
