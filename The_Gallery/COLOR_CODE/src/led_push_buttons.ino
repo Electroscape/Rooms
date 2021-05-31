@@ -72,6 +72,7 @@ void setup() {
 #ifndef OLED_DISABLE
     OLED_Init();
 #endif
+    led_init();
     Keypad_Init();
     relay_Init();
 
@@ -241,13 +242,35 @@ void Keypad_Init() {
  */
 void Keypad_Update() {
     MyKeypad.getKey();
-    if ((millis() - KeypadCodeResetTimer > KeypadCodeResetSpan) && KeypadTyping) {
+    // Less waiting time for checking password if reaches length
+    if (passwordCheckTimerEvent()) {
         if (checkPassword()) {
             relay.digitalWrite(REL_PIC_VALVE_PIN, VALVE_OPEN);
         } else {
+            // password is resetted on checkpassword() call
             printWithHeader("!Reset", relayCode);
         }
     }
+}
+
+/**
+ * Checks timer conditions for evaulating the password
+ *
+ * @param void
+ * @return true (bool) if a timer expires 
+ */
+bool passwordCheckTimerEvent() {
+    // Password length and timeout 
+    if (strlen((passLight.guess)) == strlen(secret_password) && 
+        millis() - KeypadCodeResetTimer > KeypadCodeCheckTimer) {
+            return true;
+        }
+
+    // Keypadtyping and timeout
+    if ((millis() - KeypadCodeResetTimer > KeypadCodeResetSpan) && KeypadTyping) {
+            return true;
+        }
+    return false;
 }
 
 /**
@@ -285,12 +308,6 @@ void keypadEvent(KeypadEvent eKey) {
     }
 }
 
-/**
- * Initialise 8 Relays on I2C PCF
- *
- * @param void
- * @return true when done
- */
 // small LEDs that are
 bool led_init() {
     leds.begin(LED_I2C_ADD);
@@ -298,9 +315,11 @@ bool led_init() {
         leds.pinMode(i, OUTPUT);
         leds.digitalWrite(i, HIGH);
     };
+    return true;
 }
 
-void blinkLed(byte led_no) {
+// PCF LEDs blink command
+void blinkLed(enum LED_PIN led_no) {
     for (int i = 0; i < blink_amount; i++) {
         if (i > 0) { delay(blink_delay); }
         // good question is what datatype is pin ... 
@@ -310,6 +329,12 @@ void blinkLed(byte led_no) {
     }
 }
 
+/**
+ * Initialise 8 Relays on I2C PCF
+ *
+ * @param void
+ * @return true when done
+ */
 bool relay_Init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
@@ -347,7 +372,7 @@ bool checkPassword() {
     } else {
         KeypadCodeWrong = true;
         printWithHeader("!Wrong", relayCode);
-        blinkLed(GREEN_LED_PIN);
+        blinkLed(RED_LED_PIN);
 #ifndef OLED_DISABLE
         // Update OLED before reset
         OLED_keypadscreen();

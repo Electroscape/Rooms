@@ -24,6 +24,7 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 char *secret_password = (char *)"RGGBWGRBWG";  // for testing Simple sample password
 
 unsigned long KeypadCodeResetSpan = 5000;  // Zeit bis Codereset
+unsigned long KeypadCodeCheckTimer = 1000;  // Zeit bis Code check when reach length
 unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
 
 // CONSTANTS
