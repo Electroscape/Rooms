@@ -1,14 +1,12 @@
-/*
-        2CP - TeamEscape - Engineering
-        Author Martin Pek & Abdullah Saei
-
-        - Modified Serial outputs
-        - Optimize initialization delay to smooth restarts.
-        - Running version.
-        - Locking after correct solution.
-
-        Todo:
-        - Nothing! working and stable.
+/**
+*   2CP - TeamEscape - Engineering
+*   Author Martin Pek & Abdullah Saei
+*
+*   - use namespace
+*   - Modified Serial outputs
+*   - Optimize initialization delay to smooth restarts.
+*   - Locking after correct solution.
+*
 */
 
 /**************************************************************************/
@@ -26,8 +24,6 @@
 
 // uncomment to use
 #define DEBUGMODE 0
-
-#define REL_AMOUNT 8
 
 // == LEDS ================================================//
 
@@ -112,7 +108,7 @@ const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 //===SETUP==============================
 //====================================*/
 void setup() {
-    Serial_Init();
+    brainSerialInit();
     Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
 
@@ -128,7 +124,7 @@ void setup() {
 
     Serial.println();
     Serial.println("I2C: ... ");
-    if (i2c_scanner()) {
+    if (i2cScanner()) {
         Serial.println("I2C: OK!");
     } else {
         Serial.println("I2C: FAILED!");
@@ -138,7 +134,7 @@ void setup() {
 
     Serial.println();
     Serial.println("RFID: ... ");
-    if (RFID_Init()) {
+    if (RFID_init()) {
         Serial.println("RFID: OK!");
     } else {
         Serial.println("RFID: FAILED!");
@@ -148,7 +144,7 @@ void setup() {
 
     Serial.println();
     Serial.println("Relay: ... ");
-    if (relay_Init()) {
+    if (relay_init()) {
         Serial.println("Relay: OK!");
     } else {
         Serial.println("Relay: FAILED!");
@@ -196,7 +192,7 @@ void loop() {
             Serial.println("Restart in required!");
             wdt_disable();
             printWithHeader("Game Complete", "SYS");
-        } else if (runOnce) { // To block it from going to the else and switch the relay
+        } else if (runOnce) {  // To block it from going to the else and switch the relay
         } else {
             relay.digitalWrite(REL_ROOM_LI_PIN, REL_ROOM_LI_INIT);
             relay.digitalWrite(REL_SCHW_LI_PIN, REL_SCHW_LI_INIT);
@@ -206,7 +202,8 @@ void loop() {
         delay(500);
     }
 }
-/*
+
+/**
  * Set LED to specific color 
  * 
  * @param i byte of LED index
@@ -247,7 +244,8 @@ void NeoPixel_StripeOn(byte i, String color_str) {
         LED_Stripe_4.show();
     }
 }
-/*
+
+/**
  * Switch LED off black
  * 
  * @param i byte LED index
@@ -273,7 +271,8 @@ void NeoPixel_StripeOff(byte i) {
         LED_Stripe_4.show();
     }
 }
-/*
+
+/**
  * Switch LED to GREEN
  * 
  * @param i byte LED index
@@ -301,7 +300,7 @@ void NeoPixel_StripeEndGame(byte i) {
 }
 
 // RFID functions
-/*
+/**
  * RFID framework read, check and update
  * 
  * @param void
@@ -361,7 +360,8 @@ void RFID_loop() {
         //delay(1);
     }
 }
-/*
+
+/**
  * Checks and prints the status of the RFID  
  * 
  * @param void
@@ -418,7 +418,8 @@ bool RFID_Status() {
     }
     return false;
 }
-/*
+
+/**
  * Updates the LEDs with cards present
  * 
  * @param void
@@ -453,7 +454,8 @@ void Update_LEDs() {
         }
     }
 }
-/*
+
+/**
  * Reads all readers
  * 
  * @param //TODO
@@ -477,7 +479,8 @@ bool read_PN532(int reader_nr, uint8_t* data, uint8_t* uid, uint8_t uidLength) {
     }
     return success;
 }
-/*
+
+/**
  * prints refesh message to the serial after delay in UpdateSignalAfterDelay
  * 
  * @param void
@@ -491,7 +494,8 @@ void Update_serial() {
         printStats = true;
     }
 }
-/*
+
+/**
  * Checks if the solution is correct
  * 
  * @param // TODO
@@ -532,22 +536,13 @@ bool data_correct(int current_reader, uint8_t* data) {
 }
 
 //==FUNCTIONS=========================================//
-/*
- * UNKNOWN NOT USED
- */
-void RFID_dump_byte_array(byte* buffer, byte bufferSize) {
-    for (byte i = 0; i < bufferSize; i++) {
-        Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-        Serial.print(buffer[i], HEX);
-    }
-}
-/*
+/**
  * Initialise LEDs library
  * 
  * @param i byte LED index
  * @return void 
  */
-void NeoPixel_Init(byte i) {
+void NeoPixel_init(byte i) {
     switch (i) {
         case 0:
             LED_Stripe_1.begin();
@@ -570,16 +565,17 @@ void NeoPixel_Init(byte i) {
     }
     delay(100);
 }
-/*
+
+/**
  * Initialise LEDs and switch them off
  * 
  * @param void
  * @return void
- * @note uses NeoPixel_Init() function
+ * @note uses NeoPixel_init() function
  */
 bool LED_init() {
     for (size_t i = 0; i < STRIPE_CNT; i++) {
-        NeoPixel_Init(i);
+        NeoPixel_init(i);
     }
     delay(100);
     for (size_t i = 0; i < STRIPE_CNT; i++) {
@@ -587,14 +583,15 @@ bool LED_init() {
     }
     return true;
 }
-/*
+
+/**
  * Initialise RFID
  * 
  * @param void
  * @return true on success
  * @note When stuck WTD cause arduino to restart 
  */
-bool RFID_Init() {
+bool RFID_init() {
     bool success;
     for (int i = 0; i < RFID_AMOUNT; i++) {
         uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
@@ -614,7 +611,7 @@ bool RFID_Init() {
                 Serial.println("Didn't find PN53x board");
                 if (retries > 5) {
                     Serial.println("PN532 startup timed out, restarting");
-                    software_Reset();
+                    softwareReset();
                 }
             } else {
                 Serial.print("Found chip PN5");
@@ -636,28 +633,14 @@ bool RFID_Init() {
 
     return success;
 }
-/*
- * Prints LOGO and project title
- * 
- * @param void
- * @return void
- * @note USELESS! 
- */
-void print_logo_infos(String progTitle) {
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println(F("|    TeamEscape HH&S ENGINEERING    |"));
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println();
-    Serial.println(progTitle);
-    Serial.println();
-}
-/*
+
+/**
  * Initialise Relays on I2C
  * 
  * @param void
  * @return true when done 
  */
-bool relay_Init() {
+bool relay_init() {
     Serial.println("initializing relay");
     relay.begin(RELAY_I2C_ADD);
 
@@ -673,107 +656,4 @@ bool relay_Init() {
     Serial.println();
     Serial.println("successfully initialized relay");
     return true;
-}
-/*
- * Discover devices on I2C bus
- * 
- * @param void
- * @return true when done 
- */
-bool i2c_scanner() {
-    Serial.println(F("I2C scanner:"));
-    Serial.println(F("Scanning..."));
-    byte wire_device_count = 0;
-
-    for (byte i = 8; i < 120; i++) {
-        Wire.beginTransmission(i);
-        if (Wire.endTransmission() == 0) {
-            Serial.print(F("Found address: "));
-            Serial.print(i, DEC);
-            Serial.print(F(" (0x"));
-            Serial.print(i, HEX);
-            Serial.print(F(")"));
-            if (i == 39)
-                Serial.print(F(" -> LCD"));
-            if (i == 56)
-                Serial.print(F(" -> LCD-I2C-Board"));
-            if (i == 57)
-                Serial.print(F(" -> Input-I2C-board"));
-            if (i == 60)
-                Serial.print(F(" -> Display"));
-            if (i == 63)
-                Serial.print(F(" -> Relay"));
-            if (i == 22)
-                Serial.print(F(" -> Servo-I2C-Board"));
-            Serial.println();
-            wire_device_count++;
-            delay(1);
-        }
-    }
-    Serial.print(F("Found "));
-    Serial.print(wire_device_count, DEC);
-    Serial.println(F(" device(s)."));
-    Serial.println("successfully scanned I2C");
-    Serial.println();
-
-    return true;
-}
-/*
- * Initialize I2C, Serial and Arduino Pins
- * 
- * @param void
- * @return void 
- */
-void Serial_Init() {
-    Wire.begin();
-    Serial.begin(115200);
-    delay(2000);
-    // initialize the read pin as an output:
-    pinMode(ctrlPin, OUTPUT);
-    // Test Serial Print
-    Serial.println("\nSETUP\n");
-    // Welcome Print
-    printWithHeader("Setup Begin", "SYS");
-}
-
-/*
- * Prints with the correct format
- * 
- * @param message string in the message field,
- *        source string the message source either relayCode or 'SYS'
- * @return void 
- * @note switching pin for MAX485 control Write then Read
- */
-void printWithHeader(String message, String source) {
-    // turn Write mode on:
-
-    digitalWrite(ctrlPin, MAX485_WRITE);
-    Serial.println();
-    Serial.print("!");
-    Serial.print(brainName);
-    Serial.print(",");
-    Serial.print(source);
-    Serial.print(",");
-    Serial.print(message);
-    Serial.println(",Done.");
-    delay(50);
-    // turn Write mode off:
-    digitalWrite(ctrlPin, MAX485_READ);
-}
-
-//==RESET====================================//
-/*
- * To restart the arduino by jumping to address 0x00
- * 
- * @param void
- * @return void 
- */
-void software_Reset() {
-    Serial.println(F("Restarting in"));
-    delay(50);
-    for (byte i = 3; i > 0; i--) {
-        Serial.println(i);
-        delay(100);
-    }
-    asm volatile("  jmp 0");
 }

@@ -1,9 +1,6 @@
-/*
-* To configure a relay:
-*   - rename REL_X_PIN to informative name
-*   - rename and set REL_X_INIT with your init value
-*/
 #pragma once
+#include "stb_namespace.h"
+using namespace stb_namespace;
 
 String title = "Stuttgart Gallery A/B";
 String versionDate = "02.02.2021";
@@ -23,6 +20,16 @@ String relayCode = String("UVL");
 
 #define CLR_ORDER NEO_RGB
 
+// RFIDs
+#define RFID_AMOUNT 3
+
+//Cards Data
+#define RFID_SOLUTION_SIZE 3  // Length of Char data on NFC tag + char '\n' at the end
+static char RFID_solutions[4][RFID_SOLUTION_SIZE] = {"AH", "SD", "GF"};
+
+const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Online Signal			*/
+
+// == constants
 // RELAY
 enum REL_PIN {
     REL_0_PIN,        // 0 First room light
@@ -45,30 +52,10 @@ enum REL_INIT {
     REL_7_INIT = 1                 // DESCRIPTION OF THE RELAY WIRING
 };
 
-#define RFID_AMOUNT 3
-
-//Cards Data
-#define RFID_SOLUTION_SIZE 3  // Length of Char data on NFC tag + char '\n' at the end
-static char RFID_solutions[4][RFID_SOLUTION_SIZE] = {"AH", "SD", "GF"};
-
-const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Online Signal			*/
-
-// == constants
+#define REL_AMOUNT 2
 const enum REL_PIN relayPinArray[] = {
-    REL_0_PIN,
     REL_ROOM_LI_PIN,
-    REL_SCHW_LI_PIN,
-    REL_3_PIN,
-    REL_4_PIN,
-    REL_5_PIN,
-    REL_6_PIN,
-    REL_7_PIN};
-const byte relayInitArray[] = {
-    REL_0_INIT,
+    REL_SCHW_LI_PIN};
+const enum REL_INIT relayInitArray[] = {
     REL_ROOM_LI_INIT,
-    REL_SCHW_LI_INIT,
-    REL_3_INIT,
-    REL_4_INIT,
-    REL_5_INIT,
-    REL_6_INIT,
-    REL_7_INIT};
+    REL_SCHW_LI_INIT};
