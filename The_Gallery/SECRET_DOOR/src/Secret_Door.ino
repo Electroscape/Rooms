@@ -1,16 +1,15 @@
-/*==========================================================================================================*/
+/*=========================================================================*/
 /**		2CP - TeamEscape - Engineering
  *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.5
  *		- Reset only on timeout
- *		- Autocheck once reaches password length
  *		- Block brain after correct solution
  *		- add heartbeat pulse if no input
  *		- enable WDT
  *		- add oled homescreen
  */
-/*==========================================================================================================*/
+/*==========================================================================*/
 
 #include "header_s.h"
 using namespace stb_namespace;
@@ -28,14 +27,13 @@ using namespace stb_namespace;
 // I2C Port Expander
 #include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
-/*==OLED====================================================================================================*/
+/*==OLED============================================================*/
 #ifndef OLED_DISABLE
 #include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
 SSD1306AsciiWire oled;
 #endif
 
-
-/*==KEYPAD I2C==============================================================================================*/
+/*==KEYPAD I2C============================================================*/
 const byte KEYPAD_ROWS = 4;  // Zeilen
 const byte KEYPAD_COLS = 3;  // Spalten
 const byte KEYPAD_CODE_LENGTH = 4;
@@ -58,12 +56,12 @@ Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_R
 // Passwort
 Password passKeypad = Password(secret_password);
 
-/*==PCF8574=================================================================================================*/
+/*==PCF8574============================================================*/
 Expander_PCF8574 relay;
 
-/*============================================================================================================
-//===BASICS===================================================================================================
-//==========================================================================================================*/
+/*============================================================*/
+//===BASICS===================================================
+//============================================================*/
 
 void print_serial_header() {
     printWithHeader("!header_begin", "SYS");
@@ -72,9 +70,9 @@ void print_serial_header() {
     printWithHeader(version, "SYS");
 }
 
-/*============================================================================================================
-//===MOTHER===================================================================================================
-//==========================================================================================================*/
+/*============================================================*/
+//===MOTHER===================================================
+//============================================================*/
 
 bool relay_init() {
     Serial.println("initializing relay");
@@ -89,9 +87,9 @@ bool relay_init() {
     return true;
 }
 
-/*============================================================================================================
-//===KEYPAD===================================================================================================
-//==========================================================================================================*/
+/*============================================================*/
+//===KEYPAD===================================================
+//============================================================*/
 
 void keypadEvent(KeypadEvent eKey) {
     KeyState state = IDLE;
@@ -101,9 +99,6 @@ void keypadEvent(KeypadEvent eKey) {
     switch (state) {
         case PRESSED:
             update_timer = millis();
-            Serial.print(F("Taste: "));
-            Serial.println(eKey);
-
             switch (eKey) {
                 case '#':
                     checkPassword();
@@ -123,16 +118,13 @@ void keypadEvent(KeypadEvent eKey) {
                     oled.print("         ");
                     oled.println(passKeypad.guess);
 #endif
-                    printWithHeader(passKeypad.guess, "FPK");
+                    printWithHeader(passKeypad.guess, relayCode);
                     break;
             }
             break;
 
         default:
             break;
-    }
-    if (strlen(passKeypad.guess) == strlen(secret_password)) {
-        checkPassword();
     }
 }
 
@@ -162,9 +154,18 @@ void oledHomescreen() {
     oled.println("  Type your code..");
 }
 
-void checkPassword() {
-    if (strlen(passKeypad.guess) < 1) return;
-    if (passKeypad.evaluate()) {
+/**
+ * Evaluates guessed password
+ *
+ * @param void
+ * @return (bool) true if correct password, false otherwise
+ * @remark it stucks the code on correct solution
+ * TODO: It should not make relay changes, only evaluates and return true or false!!
+ */
+bool checkPassword() {
+    if (strlen(passKeypad.guess) < 1) return false;
+    bool result = passKeypad.evaluate();
+    if (result) {
         printWithHeader("!Correct", relayCode);
 #ifndef OLED_DISABLE
         oled.clear();
@@ -186,17 +187,24 @@ void checkPassword() {
 #ifndef OLED_DISABLE
         oled.println("    ACCESS DENIED!");
 #endif
-        // transit time between wrong and reset statuses
+        // Wait to show wrong for a second
         delay(1000);
+        passwordReset();
     }
-    passwordReset();
+    return result;
 }
 
-/*============================================================================================================
-//===OLED=====================================================================================================
-//==========================================================================================================*/
+/*============================================================*/
+//===OLED=====================================================
+//============================================================*/
 
 #ifndef OLED_DISABLE
+/**
+ * Initialize Oled
+ *
+ * @param void
+ * @return true (bool) on success
+ */
 bool oled_init() {
     // &SH1106_128x64 &Adafruit128x64
     Serial.print(F("Oled init\n"));
@@ -209,19 +217,25 @@ bool oled_init() {
 }
 #endif
 
+/**
+ * Resets the password after timeout
+ *
+ * @param void
+ * @return void
+ * @note Sends No Input heartbeat-like message
+ */
 void keypad_reset() {
     if (millis() - update_timer >= keypad_reset_after) {
         update_timer = millis();
 
         if (strlen(passKeypad.guess) > 0) {
+            checkPassword();
             printWithHeader("!Reset", relayCode);
             Serial.println("!Timeout");
-            checkPassword();
         } else {
             // Act as heartbeat pulse
             printWithHeader("", relayCode);
         }
-
         passwordReset();
     }
 }
@@ -266,10 +280,9 @@ void setup() {
     delay(2000);
 }
 
-/*============================================================================================================
-//===LOOP=====================================================================================================
-//==========================================================================================================*/
-
+/*============================================================*/
+//===LOOP=====================================================
+//============================================================*/
 void loop() {
     wdt_reset();
 
