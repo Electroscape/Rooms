@@ -1,7 +1,7 @@
 #include "stb_namespace.h"
 
 String title = "Light & Exit & RFID S v0.5";
-String versionDate = "05.05.2021";
+String versionDate = "31.05.2021";
 String version = "version 1.7";
 
 String brainName = String("Br");

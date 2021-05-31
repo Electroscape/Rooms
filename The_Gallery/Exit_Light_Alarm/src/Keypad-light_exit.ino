@@ -3,7 +3,6 @@
  *		by Martin Pek & Abdullah Saei
  *
  *		based on HH  keypad-light-exit v 1.7
- *		- Auto-check when reachs password length
  *		- Block after correct solution
  *		- Heartbeat messages
  *		- C++11 arrays coding style
@@ -200,9 +199,6 @@ void keypadEvent(KeypadEvent eKey) {
             break;
         default:
             break;
-    }
-    if (strlen(passwords[usedkeypad].guess) == strlen(secret_passwords[usedkeypad])) {
-        checkPassword();
     }
 }
 
@@ -531,8 +527,11 @@ void loop() {
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
 
-        printWithHeader(passwords[LIGHT_RIDDLE].guess, relayCodes[LIGHT_RIDDLE]);
-        printWithHeader(passwords[EXIT_RIDDLE].guess, relayCodes[EXIT_RIDDLE]);
-        printWithHeader(compass_status, relayCodes[ALARM_RIDDLE]);
+        if (!endgame[LIGHT_RIDDLE])
+            printWithHeader(passwords[LIGHT_RIDDLE].guess, relayCodes[LIGHT_RIDDLE]);
+        if (!endgame[EXIT_RIDDLE]) {
+            printWithHeader(passwords[EXIT_RIDDLE].guess, relayCodes[EXIT_RIDDLE]);
+            printWithHeader(compass_status, relayCodes[ALARM_RIDDLE]);
+        }
     }
 }
