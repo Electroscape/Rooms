@@ -27,25 +27,20 @@
 
 // == LEDS ================================================//
 
+//defined by hardware
 #define RFID_1_LED_PIN 9  // Per Konvention ist dies RFID-Port 1
 #define RFID_2_LED_PIN 6  // Per Konvention ist dies RFID-Port 2
 #define RFID_3_LED_PIN 5  // Per Konvention ist dies RFID-Port 3
 #define RFID_4_LED_PIN 3  // Per Konvention ist dies RFID-Port 4
+#define PWM_PINS (int[]){RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN, RFID_4_LED_PIN}
+
+#include <FastLED.h>  // header file
 
 // NeoPixel
-#include <Adafruit_NeoPixel.h>   // Ueber Bibliotheksverwalter
-                                 // NeoPixel
+// NeoPixel
 #define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
-#define STRIPE_CNT 4
-
-Adafruit_NeoPixel LED_Stripe_1 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_1_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_2 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_2_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_3 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_3_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_4 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_4_LED_PIN, CLR_ORDER + NEO_KHZ800);
+#define STRIPE_CNT 3
+CRGB *LED_Strips[STRIPE_CNT];
 
 uint8_t gBrightness = 128;
 
@@ -211,38 +206,24 @@ void loop() {
  * @return void
  */
 void NeoPixel_StripeOn(byte i, String color_str) {
-    uint32_t color;
+    CRGB color;
 
     if (color_str == "red") {
-        color = LED_Stripe_1.Color(255, 0, 0);  //red
+        color = CRGB::Red;  //red
     } else if (color_str == "green") {
-        color = LED_Stripe_1.Color(0, 255, 0);  //green
+        color = CRGB::Green;  //green
     } else if (color_str == "white") {
-        color = LED_Stripe_1.Color(255, 255, 255);  //white
+        color = CRGB::White;  //white
     } else if (color_str == "gold") {
-        color = LED_Stripe_1.Color(255, 70, 0);  //gold
+        color = CRGB::Gold;  //gold
     } else if (color_str == "black") {
-        color = LED_Stripe_1.Color(0, 0, 0);  //black
+        color = CRGB::Black;  //black
     } else {
-        color = LED_Stripe_1.Color(0, 0, 0);  //schwarz
+        color = CRGB::CadetBlue;  //schwarz
     }
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i][0] = color;
+    FastLED.show();
 }
 
 /**
@@ -252,24 +233,10 @@ void NeoPixel_StripeOn(byte i, String color_str) {
  * @return void
  */
 void NeoPixel_StripeOff(byte i) {
-    long int color_black = LED_Stripe_1.Color(0, 0, 0);
+    CRGB color_black = CRGB::Black;
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color_black);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color_black);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color_black);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color_black);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i][0] = color_black;
+    FastLED.show();
 }
 
 /**
@@ -279,24 +246,10 @@ void NeoPixel_StripeOff(byte i) {
  * @return void
  */
 void NeoPixel_StripeEndGame(byte i) {
-    long int color_green = LED_Stripe_1.Color(0, 255, 0);
+    CRGB color_green = CRGB::Green;
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color_green);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color_green);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color_green);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color_green);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i][0] = color_green;
+    FastLED.show();
 }
 
 // RFID functions
@@ -539,31 +492,18 @@ bool data_correct(int current_reader, uint8_t* data) {
 /**
  * Initialise LEDs library
  * 
- * @param i byte LED index
+ * @param i (byte) LED index
  * @return void 
  */
 void NeoPixel_init(byte i) {
-    switch (i) {
-        case 0:
-            LED_Stripe_1.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 1:
-            LED_Stripe_2.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 2:
-            LED_Stripe_3.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 3:
-            LED_Stripe_4.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        default:
-            break;
+    FastLED.addLeds<WS2812B, RFID_1_LED_PIN, CLR_ORDER>(LED_Strips[0], NEOPIXEL_NR_OF_PIXELS);
+    FastLED.addLeds<WS2812B, RFID_2_LED_PIN, CLR_ORDER>(LED_Strips[1], NEOPIXEL_NR_OF_PIXELS);
+    FastLED.addLeds<WS2812B, RFID_3_LED_PIN, CLR_ORDER>(LED_Strips[2], NEOPIXEL_NR_OF_PIXELS);
+    /*
+    for (u8 i; i < STRIPE_CNT; i++) {
+        FastLED.addLeds<WS2811, PWM_PINS[i], CLR_ORDER>(LED_Strips[i], NEOPIXEL_NR_OF_PIXELS);
     }
-    delay(100);
+    */
 }
 
 /**
@@ -574,14 +514,43 @@ void NeoPixel_init(byte i) {
  * @note uses NeoPixel_init() function
  */
 bool LED_init() {
-    for (size_t i = 0; i < STRIPE_CNT; i++) {
-        NeoPixel_init(i);
-    }
+    Serial.println("1");
+    NeoPixel_init(0);
     delay(100);
+    wdt_reset();
+    Serial.println("2");
+    for (size_t i = 0; i < STRIPE_CNT; i++) {
+        rainbow(i);
+        Serial.println(i);
+    }
+
+    delay(100);
+    Serial.println("4");
+    wdt_reset();
     for (size_t i = 0; i < STRIPE_CNT; i++) {
         NeoPixel_StripeOff(i);
     }
+    Serial.println("5");
     return true;
+}
+
+// Rainbow cycle along whole strip. Pass fastled strip by address
+void rainbow(u8 i) {
+    CRGB rainbowColors[] = {
+        CRGB::Red,          // red
+        CRGB::Green,          // green
+        CRGB::Blue,          // blue
+        CRGB::Yellow,        // yellow
+        CRGB::Purple,          // purple
+        CRGB::White,       // True white (not RGB white)
+        CRGB::Gold  // True white (not RGB white)
+    };
+
+    for (u8 j; j< 7; j++) {
+        LED_Strips[i][0] = rainbowColors[j];
+        FastLED.show();  // Update strip with new contents
+    }
+    delay(1000);   // Pause for a moment
 }
 
 /**

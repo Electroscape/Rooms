@@ -18,7 +18,7 @@ String relayCode = String("UVL");
 #define OLED_I2C_ADD 0x3C   // Predefined by hardware
 #define RELAY_I2C_ADD 0x3F  // Relay Expander
 
-#define CLR_ORDER NEO_RGB
+#define CLR_ORDER RGB
 
 // RFIDs
 #define RFID_AMOUNT 3
