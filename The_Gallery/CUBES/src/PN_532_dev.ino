@@ -31,23 +31,16 @@
 #define RFID_2_LED_PIN 6  // Per Konvention ist dies RFID-Port 2
 #define RFID_3_LED_PIN 5  // Per Konvention ist dies RFID-Port 3
 #define RFID_4_LED_PIN 3  // Per Konvention ist dies RFID-Port 4
+#define PWM_PINS \
+    (int[]) { RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN, RFID_4_LED_PIN }
 
 // NeoPixel
 #include <Adafruit_NeoPixel.h>   // Ueber Bibliotheksverwalter
                                  // NeoPixel
 #define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
-#define STRIPE_CNT 4
+#define STRIPE_CNT 3
 
-Adafruit_NeoPixel LED_Stripe_1 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_1_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_2 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_2_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_3 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_3_LED_PIN, CLR_ORDER + NEO_KHZ800);
-Adafruit_NeoPixel LED_Stripe_4 = Adafruit_NeoPixel(
-    NEOPIXEL_NR_OF_PIXELS, RFID_4_LED_PIN, CLR_ORDER + NEO_KHZ800);
-
-uint8_t gBrightness = 128;
+Adafruit_NeoPixel LED_Strips[STRIPE_CNT];
 
 // == PN532 imports and setup
 #include <Adafruit_PN532.h>
@@ -214,35 +207,21 @@ void NeoPixel_StripeOn(byte i, String color_str) {
     uint32_t color;
 
     if (color_str == "red") {
-        color = LED_Stripe_1.Color(255, 0, 0);  //red
+        color = LED_Strips[0].Color(255, 0, 0);  //red
     } else if (color_str == "green") {
-        color = LED_Stripe_1.Color(0, 255, 0);  //green
+        color = LED_Strips[0].Color(0, 255, 0);  //green
     } else if (color_str == "white") {
-        color = LED_Stripe_1.Color(255, 255, 255);  //white
+        color = LED_Strips[0].Color(255, 0, 0, 0);  //white
     } else if (color_str == "gold") {
-        color = LED_Stripe_1.Color(255, 70, 0);  //gold
+        color = LED_Strips[0].Color(255, 70, 0);  //gold
     } else if (color_str == "black") {
-        color = LED_Stripe_1.Color(0, 0, 0);  //black
+        color = LED_Strips[0].Color(0, 0, 0);  //black
     } else {
-        color = LED_Stripe_1.Color(0, 0, 0);  //schwarz
+        color = LED_Strips[0].Color(0, 0, 0);  //schwarz
     }
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i].setPixelColor(0, color);
+    LED_Strips[i].show();
 }
 
 /**
@@ -252,24 +231,10 @@ void NeoPixel_StripeOn(byte i, String color_str) {
  * @return void
  */
 void NeoPixel_StripeOff(byte i) {
-    long int color_black = LED_Stripe_1.Color(0, 0, 0);
+    long int color_black = LED_Strips[0].Color(0, 0, 0);
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color_black);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color_black);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color_black);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color_black);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i].setPixelColor(0, color_black);
+    LED_Strips[i].show();
 }
 
 /**
@@ -279,24 +244,10 @@ void NeoPixel_StripeOff(byte i) {
  * @return void
  */
 void NeoPixel_StripeEndGame(byte i) {
-    long int color_green = LED_Stripe_1.Color(0, 255, 0);
+    long int color_green = LED_Strips[0].Color(0, 255, 0);
 
-    if (i == 0) {
-        LED_Stripe_1.setPixelColor(0, color_green);
-        LED_Stripe_1.show();
-    }
-    if (i == 1) {
-        LED_Stripe_2.setPixelColor(0, color_green);
-        LED_Stripe_2.show();
-    }
-    if (i == 2) {
-        LED_Stripe_3.setPixelColor(0, color_green);
-        LED_Stripe_3.show();
-    }
-    if (i == 3) {
-        LED_Stripe_4.setPixelColor(0, color_green);
-        LED_Stripe_4.show();
-    }
+    LED_Strips[i].setPixelColor(0, color_green);
+    LED_Strips[i].show();
 }
 
 // RFID functions
@@ -417,6 +368,27 @@ bool RFID_Status() {
         printWithHeader("!Wrong", relayCode);
     }
     return false;
+}
+
+void rainbow(u8 i) {
+    uint32_t rainbowColors[] = {
+        LED_Strips[i].Color(255, 0, 0), //red
+        LED_Strips[i].Color(255, 165, 0), //orange
+        LED_Strips[i].Color(255, 255, 0), //yellow
+        LED_Strips[i].Color(0, 128, 0), //green
+        LED_Strips[i].Color(0, 0, 255), //blue
+        LED_Strips[i].Color(75, 0, 130), //purple
+        LED_Strips[i].Color(238, 130, 238), //pink
+        LED_Strips[i].Color(255, 255, 255) //white
+    };
+    wdt_reset();
+    for(u32 color: rainbowColors) {
+        LED_Strips[i].setPixelColor(0, color);
+        LED_Strips[i].show();
+        delay(500);
+    }
+    wdt_reset();
+    delay(1000);
 }
 
 /**
@@ -543,26 +515,9 @@ bool data_correct(int current_reader, uint8_t* data) {
  * @return void 
  */
 void NeoPixel_init(byte i) {
-    switch (i) {
-        case 0:
-            LED_Stripe_1.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 1:
-            LED_Stripe_2.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 2:
-            LED_Stripe_3.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        case 3:
-            LED_Stripe_4.begin();
-            NeoPixel_StripeOn(i, "gold");
-            break;
-        default:
-            break;
-    }
+    LED_Strips[i] = Adafruit_NeoPixel(NEOPIXEL_NR_OF_PIXELS, PWM_PINS[i], CLR_ORDER + NEO_KHZ800);
+    LED_Strips[i].begin();
+    rainbow(i);
     delay(100);
 }
 
