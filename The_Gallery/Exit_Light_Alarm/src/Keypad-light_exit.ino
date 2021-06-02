@@ -288,6 +288,8 @@ void checkPassword() {
         oleds[usedkeypad].setFont(Verdana12_bold);
         oleds[usedkeypad].println("   ACCESS GRANTED!");
 #endif
+        //0.1 sec delay between correct msg and relay switch
+        delay(100);
         relay.digitalWrite(relayPinArray[usedkeypad], !relayInitArray[usedkeypad]);
         endgame[usedkeypad] = true;
         // Turn off the alarm before endgame
@@ -444,11 +446,12 @@ void keypad_reset() {
                 // do nothing if riddle is already solved
                 continue;
             } else if (strlen(passwords[keypad_no].guess) > 0) {
-                printWithHeader("!Reset", relayCodes[keypad_no]);
+                usedkeypad = keypad_no;
+                // send result before resetting password
+                checkPassword();
                 Serial.print("!Timeout ");
                 Serial.println(keypad_no);
-                usedkeypad = keypad_no;
-                checkPassword();
+                printWithHeader("!Reset", relayCodes[keypad_no]);
             } else {
                 oledHomescreen(&oleds[keypad_no]);
             }
