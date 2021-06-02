@@ -174,6 +174,8 @@ bool checkPassword() {
         oled.setFont(Verdana12_bold);
         oled.println("   ACCESS GRANTED!");
 #endif
+        //0.1 sec delay between correct msg and relay switch
+        delay(100);
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
         // Brain stuck after riddle solved
         Serial.println("Riddle Solved, Please restart brain!");
