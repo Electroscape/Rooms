@@ -165,9 +165,12 @@ void loop() {
         if (RFID_Status() && !runOnce) {
             Serial.println("GATE OPEN");
             Update_LEDs();
+            //0.1 sec delay between correct msg and relay switch
+            delay(100);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
             relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
-            // Sometimes green LEDs miss the command then it needs to wait 3 secs to update.
+            // Sometimes green LEDs miss the command then, instead of waiting
+            // 3 secs to be updated, update every 1 sec.
             Update_LEDs();
             delay(1000);
             Update_LEDs();
