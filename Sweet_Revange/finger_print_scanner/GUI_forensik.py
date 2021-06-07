@@ -1,4 +1,5 @@
 from adafruit_pn532.i2c import PN532_I2C
+from adafruit_pn532.adafruit_pn532 import MIFARE_CMD_AUTH_A
 import busio
 import board
 import tkinter as tk
@@ -9,6 +10,7 @@ from time import sleep, time
 from threading import Thread
 import vlc
 import pyautogui
+import random
 
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
@@ -39,7 +41,7 @@ textSTD_en = "- select -"
 
 cards_images = {
     "BE": "img/fingerabdruck/1-eva_julius-becher.png",
-    "ZT": "img/fingerabdruck/2-janine-zucker.png",
+    "ZK": "img/fingerabdruck/2-janine-zucker.png",
     "SB": "img/fingerabdruck/3-jessica_carl-suessstoff.png",
     "TB": "img/fingerabdruck/4-luise-tabletten.png",
     "DT": "img/fingerabdruck/5-jakob_carl-donut_zigaretten.png",
@@ -54,17 +56,29 @@ media = Instance.media_new('img/scannerfilm_mit_sound.mp4')
 player = Instance.media_player_new()
 player.set_media(media)
 
+
 def motion(event):
     # limit the mouse motion to just the GUI dimensions
-    # Returns two integers, the x and y of the mouse cursor's current position. 
+    # Returns two integers, the x and y of the mouse cursor's current position.
     currentMouseX, currentMouseY = pyautogui.position()
     if currentMouseX < 1024:
-        print('POS is: {}, {} limitx'.format(currentMouseX, currentMouseY))
+        #print('POS is: {}, {} limitx'.format(currentMouseX, currentMouseY))
         pyautogui.moveTo(1024, currentMouseY)
+
 
 def reset_mouse(event):
     currentMouseX, currentMouseY = pyautogui.position()
     pyautogui.moveTo(1025, currentMouseY)
+
+
+def authenticate(uid, read_block):
+    rc = 0
+    key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    rc = pn532.mifare_classic_authenticate_block(
+        uid, read_block, MIFARE_CMD_AUTH_A, key)
+    print(rc)
+    return rc
+
 
 class Check_pin(Thread):
     # Check door status
@@ -76,6 +90,7 @@ class Check_pin(Thread):
 
     def checkloop(self):
         while True:
+            self.reset_mouse()
             # sleep(1)
             #print(f"door: {GPIO.input(self.pin)}")
             if self.status != bool(GPIO.input(self.pin)):
@@ -88,6 +103,12 @@ class Check_pin(Thread):
 
     def is_door_closed(self):
         return bool(GPIO.input(self.pin))
+
+    def reset_mouse(self):
+        currentMouseX, currentMouseY = pyautogui.position()
+        if currentMouseX < 1024:
+            #print('POS is: {}, {} limitx'.format(currentMouseX, currentMouseY))
+            pyautogui.moveTo(1024, currentMouseY)
 
 
 class MyOptionMenu(tk.OptionMenu):
@@ -111,6 +132,7 @@ geo_str = str(scrW) + "x" + str(scrH)
 top2 = tk.Toplevel(root, bg='#000000')
 top2.geometry("+0+0")
 top2.attributes('-fullscreen', tk.TRUE)
+top2.wm_attributes("-topmost", 1)  # make sure window is on top to start
 
 # big screen
 window = root
@@ -136,6 +158,13 @@ def card_func(sample_var):
     sleep(1)
     toplevel = tk.Toplevel()
     toplevel.title("Scanning result")
+    offset_x = random.randint(0, 200)
+    offset_y = random.randint(0, 400)
+    x = root.winfo_x()
+    y = root.winfo_y()
+    str_geo = "+%d+%d" % (x + offset_x, y + offset_y)
+    print(str_geo)
+    toplevel.geometry(str_geo)
     FA_Bild = tk.PhotoImage(file=cards_images[sample_var])
     FA_Label = tk.Label(toplevel, image=FA_Bild)
     FA_Label.grid()
@@ -188,9 +217,24 @@ def scan_field():
 
     if uid:
         print('Card found')
+        try:   
+            # if classic tag
+            auth = authenticate(uid, read_block)
+        except Exception:
+            # if ntag
+            auth = False
+
         try:
-            data = pn532.ntag2xx_read_block(read_block)
-            read_data = data.decode('utf-8')[:2]
+            # Switch between ntag and classic
+            if auth: #True for classic and False for ntags
+                data = pn532.mifare_classic_read_block(read_block)
+            else:
+                data = pn532.ntag2xx_read_block(read_block)
+
+            if data is not None:
+                read_data = data.decode('utf-8')[:2]
+            else:
+                print("None block")
         except Exception as e:
             print(e)
 
@@ -788,8 +832,8 @@ window.bind('<Escape>', dismiss)
 if __name__ == "__main__":
     # Lock cursor inside gui
     pyautogui.FAILSAFE = False
-    root.bind('<Motion>', motion)
-    #reset_mouse(event=None)
+    #root.bind('<Motion>', motion)
+    # reset_mouse(event=None)
     #top2.bind('<Enter>', reset_mouse)
     top2.config(cursor="none")
 
