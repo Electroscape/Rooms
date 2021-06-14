@@ -47,7 +47,8 @@ cards_images = {
     "DT": "img/fingerabdruck/5-jakob_carl-donut_zigaretten.png",
     "RF": "img/fingerabdruck/6-johannes_carl-reisefuehrer.png",
     "KU": "img/fingerabdruck/7-jessica-kuli.png",
-    "VM": "img/fingerabdruck/8-julius_carl_johannes-stevia.png"
+    "VM": "img/fingerabdruck/8-julius_carl_johannes-stevia.png",
+    "unk": "img/fingerabdruck/fingerprint-unknown.png"
 }
 
 # Scanner video
@@ -165,7 +166,7 @@ def card_func(sample_var):
     str_geo = "+%d+%d" % (x + offset_x, y + offset_y)
     print(str_geo)
     toplevel.geometry(str_geo)
-    FA_Bild = tk.PhotoImage(file=cards_images[sample_var])
+    FA_Bild = tk.PhotoImage(file=cards_images.get(sample_var, cards_images["unk"]))
     FA_Label = tk.Label(toplevel, image=FA_Bild)
     FA_Label.grid()
     FA_Label.image = FA_Bild
