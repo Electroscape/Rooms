@@ -33,8 +33,8 @@ sleep(0.5)
 # Configure PN532 to communicate with MiFare cards
 pn532.SAM_configuration()
 
-non_poisoned_cards = ['SB', 'DT', 'ZK', 'TB']
-poisoned_cards = ['VM']
+non_poisoned_cards = ['PSB', 'PDT', 'PZK', 'PTB']
+poisoned_cards = ['PVM', 'PSV']
 read_block = 4
 UV_light_pin = 4
 
@@ -95,10 +95,10 @@ def main():
                 data = b"XX"
 
             try:
-                read_data = data.decode('utf-8')[:2]
+                read_data = data.decode('utf-8')[:3]
             except Exception as e:
                 print(e)
-                read_data = "XX"
+                read_data = "XXX"
 
             print('data is: {}'.format(read_data))
             
@@ -107,7 +107,7 @@ def main():
             else:
                 print('Wrong Card')
                 os.system("sudo pkill vlc")
-                os.system(vid_command.format("unknown.png"))
+                os.system(vid_command.format("unknown_strips.MOV"))
 
             if read_data in poisoned_cards: 
                 os.system("sudo pkill vlc")
