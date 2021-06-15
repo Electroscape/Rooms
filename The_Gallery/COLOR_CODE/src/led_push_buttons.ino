@@ -313,7 +313,7 @@ bool led_init() {
     leds.begin(LED_I2C_ADD);
     for (int i = 0; i < 8; i++) {
         leds.pinMode(i, OUTPUT);
-        leds.digitalWrite(i, HIGH);
+        leds.digitalWrite(i, LOW);
     };
     return true;
 }
@@ -323,9 +323,9 @@ void blinkLed(enum LED_PIN led_no) {
     for (int i = 0; i < blink_amount; i++) {
         if (i > 0) { delay(blink_delay); }
         // good question is what datatype is pin ... 
-        leds.digitalWrite(led_no, LOW);
-        delay(blink_delay);
         leds.digitalWrite(led_no, HIGH);
+        delay(blink_delay);
+        leds.digitalWrite(led_no, LOW);
     }
 }
 
