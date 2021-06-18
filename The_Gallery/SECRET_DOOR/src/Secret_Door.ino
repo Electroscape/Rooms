@@ -146,14 +146,6 @@ void passwordReset() {
     }
 }
 
-void oledHomescreen() {
-    oled.clear();
-    oled.setFont(Adafruit5x7);
-    oled.print("\n\n\n");
-    oled.setFont(Verdana12_bold);
-    oled.println("  Type your code..");
-}
-
 /**
  * Evaluates guessed password
  *
@@ -216,6 +208,14 @@ bool oled_init() {
     oledHomescreen();
     delay(1000);
     return true;
+}
+
+void oledHomescreen() {
+    oled.clear();
+    oled.setFont(Adafruit5x7);
+    oled.print("\n\n\n");
+    oled.setFont(Verdana12_bold);
+    oled.println("  Type your code..");
 }
 #endif
 
