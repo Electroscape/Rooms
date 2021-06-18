@@ -2,12 +2,7 @@
 *.gcc-flags.json
 *.yml
 *.mp4
-**/.pio/*
-!**/.pio/build
-**/.pio/build/*
-!**/.pio/build/nanoatmega328new
-**/.pio/build/nanoatmega328new/*
-!**/.pio/build/nanoatmega328new/firmware.hex
+**/.pio
 **/.vscode
 **/.idea
 **/.gitignore
