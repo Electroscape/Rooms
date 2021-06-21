@@ -246,7 +246,7 @@ bool RFID_loop() {
     }
 
     // if all reader have cards check if the riddle is correct or false
-    if ( cards_present >= (1 << RFID_AMOUNT -1) ) {
+    if ( cards_present >= (1 << RFID_AMOUNT) -1 ) {
         if (cards_correct >= RFID_AMOUNT) {
             neopixel_set_all_clr(clr_green);
             printWithHeader("!Correct", relayCode);
@@ -258,7 +258,7 @@ bool RFID_loop() {
     } else {
         // if not all slots are present we light up the readers with cards
         for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
-            if ( (1<<reader_nr) & cards_present > 0 ) {
+            if ( (1 << reader_nr) & cards_present > 0 ) {
                 neopixel_setClr(reader_nr, clr_yellow);
             } else {
                 neopixel_setClr(reader_nr, clr_black);

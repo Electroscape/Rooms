@@ -21,6 +21,7 @@ String relayCode = String("UVL");
 #define OLED_I2C_ADD 0x3C   // Predefined by hardware
 #define RELAY_I2C_ADD 0x3F  // Relay Expander
 
+// or NEO_GRB
 #define CLR_ORDER NEO_RGB
 
 // RELAY
