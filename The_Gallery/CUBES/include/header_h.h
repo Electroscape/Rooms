@@ -22,6 +22,9 @@ String relayCode = String("UVL");
 #define RELAY_I2C_ADD 0x3F  // Relay Expander
 
 #define CLR_ORDER NEO_GRB
+#define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
+#define STRIPE_CNT 4
+const uint8_t gBrightness = 256;
 
 // RELAY
 enum REL_PIN {
@@ -53,7 +56,7 @@ enum REL_INIT {
 char const *RFID_solutions[RFID_AMOUNT] = {"AH", "SD", "GF", "PA"}; //
 
 
-const uint16_t UpdateSignalAfterDelay = 5000;         /* Zeit, bis Serial print als Online Signal			*/
+const uint16_t UpdateInterval = 5000;
 
 // == constants
 const enum REL_PIN relayPinArray[] = {

@@ -23,6 +23,9 @@ String relayCode = String("UVL");
 
 // or NEO_GRB
 #define CLR_ORDER NEO_RGB
+#define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
+#define STRIPE_CNT 3
+const uint8_t gBrightness = 256;
 
 // RELAY
 enum REL_PIN {
@@ -52,7 +55,7 @@ enum REL_INIT {
 #define RFID_SOLUTION_SIZE 3  // Length of Char data on NFC tag + char '\n' at the end
 char const *RFID_solutions[RFID_AMOUNT] = {"AH", "SD", "GF"};
 
-const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Online Signal			*/
+const uint16_t UpdateInterval = 5000;
 
 // == constants
 const enum REL_PIN relayPinArray[] = {

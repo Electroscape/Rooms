@@ -39,8 +39,6 @@
 // NeoPixel
 #include <Adafruit_NeoPixel.h>   // Ueber Bibliotheksverwalter
                                  // NeoPixel
-#define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
-#define STRIPE_CNT 4
 
 Adafruit_NeoPixel LED_Stripe_1 = Adafruit_NeoPixel(
     NEOPIXEL_NR_OF_PIXELS, RFID_1_LED_PIN, CLR_ORDER + NEO_KHZ800);
@@ -55,8 +53,6 @@ static uint32_t clr_black = LED_Stripe_1.Color(0,0,0);
 static uint32_t clr_green = LED_Stripe_1.Color(0,255,0);
 static uint32_t clr_yellow = LED_Stripe_1.Color(255,255,0);
 static uint32_t clr_red = LED_Stripe_1.Color(255,0,0);
-
-uint8_t gBrightness = 128;
 
 // == PN532 imports and setup
 #include <Adafruit_PN532.h>
@@ -92,7 +88,7 @@ uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 //==Variables==============================/
 int cards_solution[RFID_AMOUNT] = {0};  //0 no card, 1 there is card, 2 correct card
-bool game_active = false;
+bool game_active = true;
 // used to detect a change in cards
 uint8_t old_cards_present = 0;
 
@@ -100,7 +96,7 @@ uint8_t old_cards_present = 0;
 // first evaluation of periodic updates is in main loop,
 // updating this value on the end of setup to delay it
 unsigned long update_timer = 0;  // responsible for the periodic updates for the interface
-
+unsigned long last_wrong_msg = 0;
 //==PCF8574==============================/
 Expander_PCF8574 relay;
 
@@ -215,12 +211,11 @@ bool RFID_loop() {
         if (success) {
             cards_present = cards_present | (1 << reader_nr) ;
             if (uidLength != 4) {  //Card is not Mifare classic, discarding card
-                Serial.println("Invalid Card type!");
+                frontendMsg += "Invalid";
                 continue;
             }
 
             if (!read_PN532(reader_nr, data, uid, uidLength)) {
-                Serial.println("read failed");
                 frontendMsg += "Read_failed ";
                 continue;
             }
@@ -237,7 +232,7 @@ bool RFID_loop() {
     }
 
     // update of the interface
-    if ( millis() - update_timer >= UpdateSignalAfterDelay ||
+    if ( millis() - update_timer >= UpdateInterval ||
         cards_present != old_cards_present )
     {
         update_timer = millis();
@@ -253,7 +248,10 @@ bool RFID_loop() {
             return true;
         } else {
             neopixel_set_all_clr(clr_red);
-            printWithHeader("!Wrong", relayCode);
+            if (millis() - last_wrong_msg >= UpdateInterval) {
+                printWithHeader("!Wrong", relayCode);
+                last_wrong_msg = millis();
+            }
         }
     } else {
         // if not all slots are present we light up the readers with cards
@@ -287,9 +285,6 @@ bool read_PN532(int reader_nr, uint8_t* data, uint8_t* uid, uint8_t uidLength) {
     }
 
     success = RFID_READERS[reader_nr].mifareclassic_ReadDataBlock(RFID_DATABLOCK, data);
-    if (!success) {
-        Serial.println("Reading failed, discarding card");
-    }
     return success;
 }
 
