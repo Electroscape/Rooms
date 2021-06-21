@@ -107,7 +107,9 @@ const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
 //===SETUP==============================
 //====================================*/
 void setup() {
-    serial_init();
+    brainSerialInit();
+    Serial.println(title);
+    Serial.println(version);
     Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
 
@@ -500,48 +502,6 @@ bool i2c_scanner() {
     Serial.println();
 
     return true;
-}
-/*
- * Initialize I2C, Serial and Arduino Pins
- *
- * @param void
- * @return void
- */
-void serial_init() {
-    Wire.begin();
-    Serial.begin(115200);
-    delay(2000);
-    // initialize the read pin as an output:
-    pinMode(ctrlPin, OUTPUT);
-    // Test Serial Print
-    Serial.println("\nSETUP\n");
-    // Welcome Print
-    printWithHeader("Setup Begin", "SYS");
-}
-
-/*
- * Prints with the correct format
- *
- * @param message string in the message field,
- *        source string the message source either relayCode or 'SYS'
- * @return void
- * @note switching pin for MAX485 control Write then Read
- */
-void printWithHeader(String message, String source) {
-    // turn Write mode on:
-
-    digitalWrite(ctrlPin, MAX485_WRITE);
-    Serial.println();
-    Serial.print("!");
-    Serial.print(brainName);
-    Serial.print(",");
-    Serial.print(source);
-    Serial.print(",");
-    Serial.print(message);
-    Serial.println(",Done.");
-    delay(50);
-    // turn Write mode off:
-    digitalWrite(ctrlPin, MAX485_READ);
 }
 
 
