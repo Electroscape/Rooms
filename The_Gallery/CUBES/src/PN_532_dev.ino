@@ -200,8 +200,8 @@ void loop() {
 }
 
 /**
- * Set LED to specific color 
- * 
+ * Set LED to specific color
+ *
  * @param i byte of LED index
  *        color_str string color name (red, green, white, gold, black)
  * @return void
@@ -217,6 +217,8 @@ void NeoPixel_StripeOn(byte i, String color_str) {
         color = LED_Strips[0].Color(255, 0, 0, 0);  //white
     } else if (color_str == "gold") {
         color = LED_Strips[0].Color(255, 70, 0);  //gold
+    } else if (color_str == "yellow") {
+        color = LED_Strips[0].Color(255, 255, 0);  //gold
     } else if (color_str == "black") {
         color = LED_Strips[0].Color(0, 0, 0);  //black
     } else {
@@ -229,7 +231,7 @@ void NeoPixel_StripeOn(byte i, String color_str) {
 
 /**
  * Switch LED off black
- * 
+ *
  * @param i byte LED index
  * @return void
  */
@@ -242,7 +244,7 @@ void NeoPixel_StripeOff(byte i) {
 
 /**
  * Switch LED to GREEN
- * 
+ *
  * @param i byte LED index
  * @return void
  */
@@ -256,7 +258,7 @@ void NeoPixel_StripeEndGame(byte i) {
 // RFID functions
 /**
  * RFID framework read, check and update
- * 
+ *
  * @param void
  * @return void
  */
@@ -316,8 +318,8 @@ void RFID_loop() {
 }
 
 /**
- * Checks and prints the status of the RFID  
- * 
+ * Checks and prints the status of the RFID
+ *
  * @param void
  * @return void
  * @note It prints the header manually! better modify and constuct a string
@@ -388,15 +390,14 @@ void rainbow(u8 i) {
     for(u32 color: rainbowColors) {
         LED_Strips[i].setPixelColor(0, color);
         LED_Strips[i].show();
-        delay(500);
+        delay(1000);
+        wdt_reset();
     }
-    wdt_reset();
-    delay(1000);
 }
 
 /**
  * Updates the LEDs with cards present
- * 
+ *
  * @param void
  * @return void
  */
@@ -424,7 +425,7 @@ void Update_LEDs() {
             if (cards_solution[i] == 0) {
                 NeoPixel_StripeOn(i, "black");
             } else {
-                NeoPixel_StripeOn(i, "white");
+                NeoPixel_StripeOn(i, "yellow");
             }
         }
     }
@@ -432,7 +433,7 @@ void Update_LEDs() {
 
 /**
  * Reads all readers
- * 
+ *
  * @param //TODO
  * @return true if success
  */
@@ -457,10 +458,10 @@ bool read_PN532(int reader_nr, uint8_t* data, uint8_t* uid, uint8_t uidLength) {
 
 /**
  * prints refesh message to the serial after delay in UpdateSignalAfterDelay
- * 
+ *
  * @param void
  * @return void
- * @note used as heartbeat check  
+ * @note used as heartbeat check
  */
 void Update_serial() {
     // check if delay has timed out after UpdateSignalAfterDelay ms
@@ -472,7 +473,7 @@ void Update_serial() {
 
 /**
  * Checks if the solution is correct
- * 
+ *
  * @param // TODO
  * @return // TODO
  */
@@ -513,20 +514,19 @@ bool data_correct(int current_reader, uint8_t* data) {
 //==FUNCTIONS=========================================//
 /**
  * Initialise LEDs library
- * 
+ *
  * @param i byte LED index
- * @return void 
+ * @return void
  */
 void NeoPixel_init(byte i) {
     LED_Strips[i] = Adafruit_NeoPixel(NEOPIXEL_NR_OF_PIXELS, PWM_PINS[i], CLR_ORDER + NEO_KHZ800);
     LED_Strips[i].begin();
-    rainbow(i);
-    delay(100);
+    // rainbow(i);
 }
 
 /**
  * Initialise LEDs and switch them off
- * 
+ *
  * @param void
  * @return void
  * @note uses NeoPixel_init() function
@@ -544,10 +544,10 @@ bool LED_init() {
 
 /**
  * Initialise RFID
- * 
+ *
  * @param void
  * @return true on success
- * @note When stuck WTD cause arduino to restart 
+ * @note When stuck WTD cause arduino to restart
  */
 bool RFID_init() {
     bool success;
@@ -594,9 +594,9 @@ bool RFID_init() {
 
 /**
  * Initialise Relays on I2C
- * 
+ *
  * @param void
- * @return true when done 
+ * @return true when done
  */
 bool relay_init() {
     Serial.println("initializing relay");
