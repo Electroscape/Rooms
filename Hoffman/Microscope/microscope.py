@@ -1,83 +1,133 @@
 from time import sleep
 import os
-from subprocess import Popen, PIPE, DEVNULL
 
-from py532lib.mifare import *
-from py532lib.frame import *
-from py532lib.constants import *
+import board
+import busio
 
-card = Mifare()
-card.SAMconfigure()
-card.set_max_retries(MIFARE_SAFE_RETRIES)
+from adafruit_pn532.i2c import PN532_I2C
+from adafruit_pn532.adafruit_pn532 import MIFARE_CMD_AUTH_A
 
+# I2C connection:
+i2c = busio.I2C(board.SCL, board.SDA)
+# Non-hardware reset/request with I2C
+pn532 = PN532_I2C(i2c, debug=False)
+read_block = 1
+
+# First of all, Play the periodic system
 pic_path = 'Screen1.png'
 vid_path = 'Periodensystem_169_schwarz.mp4' 
-vid_command = 'omxplayer {} --loop --no-osd --nodeinterlace --fps 60 &'.format(vid_path)
-pic_command = 'sudo fbi -a -T 1 --noverbose {} &'.format(pic_path)
+cmnd = 'cvlc {0} -f --no-osd --loop &'
+vid_command = cmnd.format(vid_path)
+pic_command = cmnd.format(pic_path)
 
-def noram_scenario():
-    card = Mifare()
-    card.SAMconfigure()
-    card.set_max_retries(MIFARE_SAFE_RETRIES)
-    uid = card.scan_field()
-    if uid:
-        address = card.mifare_address(0,1)
-        card.mifare_auth_a(address,MIFARE_FACTORY_KEY)
-        data = card.mifare_read(address)
-        print('data is: {}'.format(data.decode('utf-8')[:2]))
+# clean start
+# Kill all relavent applications
+os.system("sudo pkill vlc")
+# run video
+os.system(vid_command)
 
+# keep trying to initialise the sensor
+while True:
+    try:
+        # Non-hardware reset/request with I2C
+        pn532 = PN532_I2C(i2c, debug=False)
+        ic, ver, rev, support = pn532.firmware_version
+        print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
+        break
+    except:
+        print("failed to start RFID")
+        sleep(1)
+
+# this delay avoids some problems after wakeup
+sleep(1)
+
+# Configure PN532 to communicate with MiFare cards
+pn532.SAM_configuration()
+
+
+def wait_remove_card(uid):
+    while uid:
+        # print('Same Card Still there')
+        # sleep(0.01)
+        try:
+            uid = pn532.read_passive_target()
+        except RuntimeError:
+            uid = None
+
+
+def scan_field():
+    while True:
+        try:
+            uid = pn532.read_passive_target()
+        except RuntimeError:
+            uid = None
+            # sleep(0.01)
+
+        # print('.', end="") if count <= 3 else print("", end="\r")
+        # Try again if no card is available.
+        if uid:
+            print('Found card')
+            break
+
+    return uid
+
+def authenticate(uid, read_block):
+    rc = 0
+    key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    rc = pn532.mifare_classic_authenticate_block(
+        uid, read_block, MIFARE_CMD_AUTH_A, key)
+    print(rc)
+    return rc
 
 def main():
 
     print('Welcome to Microscope')
-    #clean start
-    os.system("sudo killall -9 omxplayer.bin");
-    os.system("sudo kill $(pgrep fbi)")
-    sleep(1)
-    #Actual start
-    os.system(vid_command)
-    card = Mifare()
-    card.SAMconfigure()
-    card.set_max_retries(MIFARE_SAFE_RETRIES)
     print('Waiting Card')
-    
+
     while True:
-        uid = card.scan_field()
+        uid = scan_field()
 
         if uid:
+            print('Card found')
             try:
-   	            address = card.mifare_address(0,1)
-   	            card.mifare_auth_a(address,MIFARE_FACTORY_KEY)
-   	            data = card.mifare_read(address)
-   	            print('Card found')
-   	            print('data is: {}'.format(data.decode('utf-8')[:2]))
-            except IOError as e:
-            	print(e)
-            	data = b"XX"
-            	print('data is: {}'.format(data.decode('utf-8')[:2]))
+                # if classic tag
+                auth = authenticate(uid, read_block)
+            except Exception:
+                # if ntag
+                auth = False
 
-            if data.decode('utf-8')[:2] == 'VR':
-                print('Stop video and Diplay pic')
-                os.system("sudo killall -9 omxplayer.bin");
-                #sleep(1)
+            try:
+                # Switch between ntag and classic
+                if auth:  # True for classic and False for ntags
+                    data = pn532.mifare_classic_read_block(read_block)
+                else:
+                    data = pn532.ntag2xx_read_block(read_block)
+
+                if data is not None:
+                    read_data = data.decode('utf-8')[:2]
+                else:
+                    print("None block")
+            except Exception as e:
+                print(e)
+
+            print('data is: {}'.format(read_data))
+            
+            success = False
+            if read_data == "VR": 
+                os.system("sudo pkill vlc")
                 os.system(pic_command)
-
-                while uid:
-                    print('Card still here')
-                    sleep(1)
-                    uid = card.scan_field()
-
-                # Card removed    
-                print('No image back to video')
-                os.system("sudo kill $(pgrep fbi)")
-                os.system(vid_command)
+                print('Virus detected')
+                success = True
             else:
-            	print('Wrong Card')
-            	while uid:
-                    print('Remove Wrong Card')
-                    sleep(1)
-                    uid = card.scan_field()
+                success = False
+                print('Wrong Card')
+            
+            wait_remove_card(uid)
 
+            print("Card Removed")
+            if success:
+                os.system("sudo pkill vlc")
+                os.system(vid_command)
 
 if __name__ == "__main__":
     main()
