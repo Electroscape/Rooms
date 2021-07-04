@@ -35,7 +35,7 @@ using namespace stb_namespace;
 /*==OLED======================================*/
 SSD1306AsciiWire oled;
 bool UpdateOLED = true;
-unsigned long UpdateOLEDAfterDelayTimer = 0;
+unsigned long oled_last_update = millis();
 
 // Konfiguration fuer Sparkfun-Keypads
 // Keypad 1 2 3 4 5 6 7
@@ -138,12 +138,12 @@ void OLED_Init() {
 }
 
 void OLED_Update() {
-    if ((((millis() - UpdateOLEDAfterDelayTimer) > UpdateOLEDAfterDelay)) && !KeypadTyping) {
+    if ((((millis() - oled_last_update) > oled_update_interval)) && !KeypadTyping) {
         UpdateOLED = true;
     }
 
     if (UpdateOLED) {
-        UpdateOLEDAfterDelayTimer = millis();
+        oled_last_update = millis();
         UpdateOLED = false;
 
         //display passcode typing
@@ -169,7 +169,7 @@ void oledHomescreen() {
     oled.setFont(Adafruit5x7);
     oled.print("\n\n\n");
     oled.setFont(Verdana12_bold);
-    oled.println("  Type your code..");
+    oled.println("  Enter Code");
 }
 
 // Update Oled with keypad typing
@@ -257,11 +257,11 @@ void Keypad_Update() {
  * Checks timer conditions for evaulating the password
  *
  * @param void
- * @return true (bool) if a timer expires 
+ * @return true (bool) if a timer expires
  */
 bool passwordCheckTimerEvent() {
-    // Password length and timeout 
-    if (strlen((passLight.guess)) == strlen(secret_password) && 
+    // Password length and timeout
+    if (strlen((passLight.guess)) == strlen(secret_password) &&
         millis() - KeypadCodeResetTimer > KeypadCodeCheckTimer) {
             return true;
         }
@@ -322,7 +322,7 @@ bool led_init() {
 void blinkLed(enum LED_PIN led_no) {
     for (int i = 0; i < blink_amount; i++) {
         if (i > 0) { delay(blink_delay); }
-        // good question is what datatype is pin ... 
+        // good question is what datatype is pin ...
         leds.digitalWrite(led_no, HIGH);
         delay(blink_delay);
         leds.digitalWrite(led_no, LOW);

@@ -76,7 +76,7 @@ enum LED_PIN {
 const int blink_amount = 3;
 const unsigned long blink_delay = 150;
 
-const int UpdateOLEDAfterDelay = 5000;  // Zeit, bis Display kurz flackert als Online Signal
+const int oled_update_interval = 5000;
 
 // == constants
 #define REL_AMOUNT 1
