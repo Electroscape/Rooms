@@ -49,7 +49,7 @@ byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3};  // Zeilen  - Messleitungen
 byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (abwechselnd HIGH)
 
 static unsigned long update_timer = millis();
-const int keypad_reset_after = 3000;
+const int keypad_reset_interval = 3000;
 
 Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574);
 
@@ -139,6 +139,7 @@ bool keypad_init() {
 void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
+        printWithHeader("!Reset", relayCode);
 // Homescreen
 #ifndef OLED_DISABLE
         oledHomescreen();
@@ -227,7 +228,7 @@ void oledHomescreen() {
  * @note Sends No Input heartbeat-like message
  */
 void keypad_reset() {
-    if (millis() - update_timer >= keypad_reset_after) {
+    if (millis() - update_timer >= keypad_reset_interval) {
         update_timer = millis();
 
         if (strlen(passKeypad.guess) > 0) {
