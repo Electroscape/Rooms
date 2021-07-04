@@ -10,7 +10,6 @@ from time import sleep, time
 from threading import Thread
 import vlc
 import pyautogui
-import random
 
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
@@ -137,6 +136,7 @@ top2.wm_attributes("-topmost", 1)  # make sure window is on top to start
 
 # big screen
 window = root
+root.option_add('*Dialog.msg.width', 34)
 print("Geo str: " + geo_str)
 window.geometry(geo_str)
 window.title("Forensik Hamburg")
@@ -152,31 +152,87 @@ sleep(1)
 
 img_path = "/home/pi/fingerabdruck/img/haftrichter/"
 
+
+def popupmsg(ttl, msg):
+    global warning_popup
+
+    try:
+        warning_popup.destroy()
+    except (AttributeError, NameError):
+        warning_popup = None
+
+    #popup.wm_title(ttl)
+    # keeps popup above everything until closed.
+    # popup.wm_attributes('-topmost', True)
+    # this is outter background colour
+    #popup.configure(background='#4a4a4a')
+    top = tk.Toplevel(root)
+    top.details_expanded = False
+    top.title(ttl)
+    w = 300
+    h = 100
+    ws = root.winfo_screenwidth()
+    hs = root.winfo_screenheight()
+    x = int((ws/2)) + 200
+    y = int((hs/2) - (h/2))
+    top.geometry("{}x{}+{}+{}".format(w, h, x, y))
+    top.resizable(False, False)
+    top.rowconfigure(0, weight=0)
+    top.rowconfigure(1, weight=1)
+    top.columnconfigure(0, weight=1)
+    top.columnconfigure(1, weight=1)
+    tk.Label(top, image="::tk::icons::question").grid(row=0, column=0, pady=(7, 0), padx=(7, 7), sticky="e")
+    tk.Label(top, text=msg).grid(row=0, column=1, columnspan=2, pady=(7, 7), sticky="w")
+    ttk.Button(top, text="OK", command=top.destroy).grid(row=1, column=2, padx=(7, 7), sticky="e")
+    top.lift(root)
+    warning_popup = top
+
 # ------------------------ RFID ------------------------
 
 
 def card_func(sample_var):
     sleep(1)
+    global picture_popup
+
+    try:
+        picture_popup.destroy()
+    except (AttributeError, NameError):
+        picture_popup = None
+
     toplevel = tk.Toplevel()
-    toplevel.title("Scanning result")
-    offset_x = random.randint(0, 200)
-    offset_y = random.randint(0, 400)
+
+    # offset_x = 200 #random.randint(0, 200)
+    # offset_y = 400 #random.randint(0, 400)
     x = root.winfo_x()
     y = root.winfo_y()
-    str_geo = "+%d+%d" % (x + offset_x, y + offset_y)
-    print(str_geo)
+    str_geo = "+%d+%d" % (x, y)
+    print("img @ " + str_geo)
     toplevel.geometry(str_geo)
-    FA_Bild = tk.PhotoImage(file=cards_images.get(sample_var, cards_images["unk"]))
+
+    toplevel.title("Scanning result")
+    FA_Bild = tk.PhotoImage(file=cards_images.get(
+        sample_var, cards_images["unk"]))
     FA_Label = tk.Label(toplevel, image=FA_Bild)
-    FA_Label.grid()
     FA_Label.image = FA_Bild
+    FA_Label.grid()
+
+    #toplevel.attributes("-toolwindow",1)
+    toplevel.resizable(0, 0)  # will remove the top badge of window
+    toplevel.lift(root)
+    picture_popup = toplevel
 
 
 def scan_field():
+    global warning_popup
+    try:
+        warning_popup.destroy()
+    except (AttributeError, NameError):
+        warning_popup = None
+    
     #print(f'button state {ButtonScan["state"]}')
     if not chk_door.is_door_closed():
-        messagebox.showerror(
-            "Close door", "Please close the door to start scanning")
+        popupmsg(
+            "Close door", "Bitte schließen Sie die scannertür \n Please close the scanner door") 
         return -1
 
     if ButtonScan["state"] == tk.ACTIVE or ButtonScan["state"] == tk.NORMAL:
@@ -193,7 +249,7 @@ def scan_field():
 
     # Found Solution
     success = False
-    msg = ["Timeout!", "Beweismittel richtig einlegen - Object not placed correctly"]
+    msg = ["Timeout!", "Beweismittel richtig einlegen \n Object not placed correctly"]
     read_data = "XX"
 
     uid = None
@@ -218,7 +274,7 @@ def scan_field():
 
     if uid:
         print('Card found')
-        try:   
+        try:
             # if classic tag
             auth = authenticate(uid, read_block)
         except Exception:
@@ -227,7 +283,7 @@ def scan_field():
 
         try:
             # Switch between ntag and classic
-            if auth: #True for classic and False for ntags
+            if auth:  # True for classic and False for ntags
                 data = pn532.mifare_classic_read_block(read_block)
             else:
                 data = pn532.ntag2xx_read_block(read_block)
@@ -261,8 +317,7 @@ def scan_field():
     if success:
         card_func(read_data)
     else:
-        messagebox.showerror(*msg)
-
+        popupmsg(*msg)
     return uid
 
 
@@ -837,6 +892,9 @@ if __name__ == "__main__":
     # reset_mouse(event=None)
     #top2.bind('<Enter>', reset_mouse)
     top2.config(cursor="none")
+
+    warning_popup = None
+    picture_popup = None
 
     # start door checking thread
     chk_door = Check_pin(door_lock_pin)
