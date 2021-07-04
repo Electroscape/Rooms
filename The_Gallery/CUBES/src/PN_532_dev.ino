@@ -81,6 +81,12 @@ char RFID_reads[4][RFID_SOLUTION_SIZE] = {
 #define RFID_DATABLOCK 1
 uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+/*==OLED============================================================*/
+#ifndef OLED_DISABLE
+#include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
+SSD1306AsciiWire oled;
+#endif
+
 //==Variables==============================/
 int cards_solution[RFID_AMOUNT] = {0};  //0 no card, 1 there is card, 2 correct card
 bool runOnce = false;
@@ -104,7 +110,6 @@ void setup() {
     brainSerialInit();
     Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
-
     Serial.println();
     Serial.println("LED: ... ");
     if (LED_init()) {
@@ -122,6 +127,13 @@ void setup() {
     } else {
         Serial.println("I2C: FAILED!");
     };
+
+#ifndef OLED_DISABLE
+    Serial.print(F("Oleds: ..."));
+    if (oled_init()) {
+        Serial.println(" light OLED ok...");
+    }
+#endif
 
     wdt_reset();
 
@@ -168,16 +180,13 @@ void loop() {
             //0.1 sec delay between correct msg and relay switch
             delay(100);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
+            delay(6000);
+            wdt_reset();
             relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
             // Sometimes green LEDs miss the command then, instead of waiting
             // 3 secs to be updated, update every 1 sec.
-            Update_LEDs();
-            delay(1000);
-            Update_LEDs();
-            delay(1000);
-            Update_LEDs();
-            delay(1000);
-            Update_LEDs();
+            wdt_reset();
+            delay(6000);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
             runOnce = true;
             wdt_reset();
@@ -191,7 +200,7 @@ void loop() {
         }
     } else {
         Update_LEDs();
-        delay(500);
+        delay(5000);
     }
 }
 
@@ -361,11 +370,17 @@ bool RFID_Status() {
     }
 
     printWithHeader(msg, relayCode);
+    oled.clear();
+    oled.println();
+    oled.print("          ");
+    oled.println(msg);
 
     if (sum == 2 * RFID_AMOUNT) {
+        oled.println("!Correct");
         printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
+        oled.println("!Wrong");
         printWithHeader("!Wrong", relayCode);
     }
     return false;
@@ -390,6 +405,33 @@ void rainbow(u8 i) {
         wdt_reset();
     }
 }
+
+#ifndef OLED_DISABLE
+/**
+ * Initialize Oled
+ *
+ * @param void
+ * @return true (bool) on success
+ */
+bool oled_init() {
+    // &SH1106_128x64 &Adafruit128x64
+    Serial.print(F("Oled init\n"));
+    oled.begin(&SH1106_128x64, OLED_ADD);
+    oled.set400kHz();
+    oled.setScroll(true);
+    oledHomescreen();
+    delay(1000);
+    return true;
+}
+
+void oledHomescreen() {
+    oled.clear();
+    oled.setFont(Adafruit5x7);
+    oled.print("\n\n\n");
+    oled.setFont(Verdana12_bold);
+    oled.println("  Type your code..");
+}
+#endif
 
 /**
  * Updates the LEDs with cards present
