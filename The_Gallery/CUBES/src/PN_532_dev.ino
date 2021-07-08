@@ -371,17 +371,23 @@ bool RFID_Status() {
     }
 
     printWithHeader(msg, relayCode);
+#ifndef OLED_DISABLE
     oled.clear();
     oled.println();
     oled.print("          ");
     oled.println(msg);
+#endif
 
     if (sum == 2 * RFID_AMOUNT) {
+#ifndef OLED_DISABLE
         oled.println("          Correct");
+#endif
         printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
+#ifndef OLED_DISABLE
         oled.println("          Wrong");
+#endif
         printWithHeader("!Wrong", relayCode);
     }
     return false;
