@@ -180,13 +180,14 @@ void loop() {
             //0.1 sec delay between correct msg and relay switch
             delay(100);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
-            delay(6000);
-            wdt_reset();
             relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
+            delay(5000);
+            wdt_reset();
+
             // Sometimes green LEDs miss the command then, instead of waiting
             // 3 secs to be updated, update every 1 sec.
             wdt_reset();
-            delay(6000);
+            delay(3000);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
             runOnce = true;
             wdt_reset();
@@ -200,7 +201,7 @@ void loop() {
         }
     } else {
         Update_LEDs();
-        delay(5000);
+        delay(500);
     }
 }
 
@@ -376,11 +377,11 @@ bool RFID_Status() {
     oled.println(msg);
 
     if (sum == 2 * RFID_AMOUNT) {
-        oled.println("!Correct");
+        oled.println("          Correct");
         printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
-        oled.println("!Wrong");
+        oled.println("          Wrong");
         printWithHeader("!Wrong", relayCode);
     }
     return false;
