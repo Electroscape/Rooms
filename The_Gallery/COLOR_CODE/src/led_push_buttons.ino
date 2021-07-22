@@ -119,7 +119,7 @@ void OLED_Init() {
 }
 
 void OLED_Update() {
-    if (!((millis() - oledLastUpdate) > oledUpdateInterval)) {
+    if (((millis() - oledLastUpdate) < oledUpdateInterval)) {
         return;
     }
 
@@ -137,6 +137,7 @@ void OLED_Idlescreen() {
     oled.print("\n\n\n");
     oled.setFont(Arial_bold_14);
     oled.println("  Enter Code..");
+    oledLastUpdate = millis();
 }
 
 // Update Oled with current password guess
@@ -148,6 +149,7 @@ void OLED_showPass() {
     oled.println();
     oled.print(F("  "));
     oled.print(passLight.guess);
+    oledLastUpdate = millis();
 }
 
 #endif
@@ -183,8 +185,9 @@ void Keypad_Init() {
  */
 void Keypad_Update() {
     MyKeypad.getKey();
-    if (millis() - KeypadActivityTimer > KeypadCheckingInterval) {
+    if ((millis() - KeypadActivityTimer) > KeypadCheckingInterval) {
 		checkPassword();
+        KeypadActivityTimer = millis();
     }
 }
 

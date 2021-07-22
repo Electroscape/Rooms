@@ -24,6 +24,8 @@ char* secret_password = (char*)"OULR";  // Simple sample password
 unsigned long KeypadCheckingInterval = 5000;  // Zeit bis Codereset
 unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
 
+const int oledUpdateInterval = 10000;  // time between refreshing of the oled
+
 // CONSTANTS
 #define SAFE_HIDDEN 0
 #define SAFE_VISIBLE 1
@@ -58,8 +60,6 @@ enum REL_INIT {
     REL_7_INIT = 1,                 // DESCRIPTION OF THE RELAY WIRING
     REL_8_INIT = 1                  // DESCRIPTION OF THE RELAY WIRING
 };
-
-const int oledUpdateInterval = 5000;  // time between refreshing of the oled
 
 
 // == constants
