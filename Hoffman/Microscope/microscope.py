@@ -7,12 +7,6 @@ import busio
 from adafruit_pn532.i2c import PN532_I2C
 from adafruit_pn532.adafruit_pn532 import MIFARE_CMD_AUTH_A
 
-# I2C connection:
-i2c = busio.I2C(board.SCL, board.SDA)
-# Non-hardware reset/request with I2C
-pn532 = PN532_I2C(i2c, debug=False)
-read_block = 1
-
 # First of all, Play the periodic system
 pic_path = 'Screen1.png'
 vid_path = 'Periodensystem_169_schwarz.mp4' 
@@ -26,6 +20,10 @@ os.system("sudo pkill vlc")
 # run video
 os.system(vid_command)
 
+# I2C connection:
+i2c = busio.I2C(board.SCL, board.SDA)
+read_block = 1
+
 # keep trying to initialise the sensor
 while True:
     try:
@@ -34,8 +32,8 @@ while True:
         ic, ver, rev, support = pn532.firmware_version
         print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
         break
-    except:
-        print("failed to start RFID")
+    except Exception as e:
+        print(e)
         sleep(1)
 
 # this delay avoids some problems after wakeup
@@ -131,4 +129,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
