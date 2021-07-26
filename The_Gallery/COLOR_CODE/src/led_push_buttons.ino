@@ -114,17 +114,15 @@ void OLED_Init() {
     oled.begin(&SH1106_128x64, OLED_I2C_ADD);
     oled.set400kHz();
     oled.setScroll(true);
-    oled.setFont(System5x7);
-    OLED_Idlescreen();
+    oled.setFont(Arial_bold_14);
+    oled.println("\n\n\n   booting....");
 }
 
 void OLED_Update() {
-    if (((millis() - oledLastUpdate) < oledUpdateInterval)) {
-        return;
-    }
+    if (((millis() - oledLastUpdate) < oledUpdateInterval)) { return;}
 
     oledLastUpdate = millis();
-    if (strlen(passLight.guess) < 1) {  
+    if (strlen(passLight.guess) < 1) {
         OLED_showPass();
     } else {
         OLED_Idlescreen();
@@ -185,9 +183,14 @@ void Keypad_Init() {
  */
 void Keypad_Update() {
     MyKeypad.getKey();
+
     if ((millis() - KeypadActivityTimer) > KeypadCheckingInterval) {
-		checkPassword();
         KeypadActivityTimer = millis();
+        if (strlen(passLight.guess) > 1) {
+            checkPassword();
+        } else {
+            OLED_Idlescreen();
+        }
     }
 }
 
@@ -260,9 +263,10 @@ void checkPassword() {
 		relay.digitalWrite(REL_SAFE_PIC_PIN, SAFE_VISIBLE);
         oled.println("          Correct");
     } else {
-        printWithHeader("!Wrong", relayCode);
-        oled.println("          Wrong");
+        oled.println("\n      Wrong");
         passwordReset();
+        printWithHeader("!Wrong", relayCode);
+        oledLastUpdate = millis();
     }
 }
 
@@ -275,5 +279,4 @@ void checkPassword() {
 void passwordReset() {
 	printWithHeader("!Reset", relayCode);
 	passLight.reset();
-	OLED_Idlescreen();
 }
