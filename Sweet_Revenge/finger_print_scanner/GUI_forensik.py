@@ -13,78 +13,6 @@ import pyautogui
 import json
 
 import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
-# door lock
-door_lock_pin = 4
-
-# I2C connection:
-i2c = busio.I2C(board.SCL, board.SDA)
-
-# Non-hardware reset/request with I2C
-pn532 = PN532_I2C(i2c, debug=False)
-read_block = 4
-
-ic, ver, rev, support = pn532.firmware_version
-print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
-
-# this delay avoids some problems after wakeup
-sleep(0.5)
-
-# Configure PN532 to communicate with MiFare cards
-pn532.SAM_configuration()
-
-bgDef = '#F2F2F2'             # Hintergrundfarbe
-tabpadx = 50                  # Spaltenbreite der Einträge
-fontSize = 22                 # Schriftgröße
-
-try:
-    with open('dict_en_de.json') as json_file:
-        data = json.loads(json_file.read())
-        names_list = data["names_list"]
-except ValueError as e:
-    print(e)
-    exit()
-
-cards_images = {
-    "BE": "img/fingerabdruck/1-eva_julius-becher.png",
-    "ZK": "img/fingerabdruck/2-janine-zucker.png",
-    "SB": "img/fingerabdruck/3-jessica_carl-suessstoff.png",
-    "TB": "img/fingerabdruck/4-luise-tabletten.png",
-    "DT": "img/fingerabdruck/5-jakob_carl-donut_zigaretten.png",
-    "RF": "img/fingerabdruck/6-johannes_carl-reisefuehrer.png",
-    "KU": "img/fingerabdruck/7-jessica-kuli.png",
-    "VM": "img/fingerabdruck/8-julius_carl_johannes-stevia.png",
-    "unk": "img/fingerabdruck/fingerprint-unknown.png"
-}
-
-# Scanner video
-Instance = vlc.Instance()
-media = Instance.media_new('img/scannerfilm_mit_sound.mp4')
-player = Instance.media_player_new()
-player.set_media(media)
-
-
-def motion(event):
-    # limit the mouse motion to just the GUI dimensions
-    # Returns two integers, the x and y of the mouse cursor's current position.
-    currentMouseX, currentMouseY = pyautogui.position()
-    if currentMouseX < 1024:
-        #print('POS is: {}, {} limitx'.format(currentMouseX, currentMouseY))
-        pyautogui.moveTo(1024, currentMouseY)
-
-
-def reset_mouse(event):
-    currentMouseX, currentMouseY = pyautogui.position()
-    pyautogui.moveTo(1025, currentMouseY)
-
-
-def authenticate(uid, read_block):
-    rc = 0
-    key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
-    rc = pn532.mifare_classic_authenticate_block(
-        uid, read_block, MIFARE_CMD_AUTH_A, key)
-    print(rc)
-    return rc
 
 
 class Check_pin(Thread):
@@ -128,36 +56,27 @@ class MyOptionMenu(tk.OptionMenu):
         self['menu'].config(font=('calibri', (fontSize)), bg=bgDef)
 
 
-root = tk.Tk()
-root.title("Fingerprint scanner")
-scrW = root.winfo_screenwidth()
-scrH = root.winfo_screenheight()
-geo_str = str(scrW) + "x" + str(scrH)
+def motion(event):
+    # limit the mouse motion to just the GUI dimensions
+    # Returns two integers, the x and y of the mouse cursor's current position.
+    currentMouseX, currentMouseY = pyautogui.position()
+    if currentMouseX < 1024:
+        #print('POS is: {}, {} limitx'.format(currentMouseX, currentMouseY))
+        pyautogui.moveTo(1024, currentMouseY)
 
-# We will create two screens: one for the interface, one for laser scanner
-# small screen root
-top2 = tk.Toplevel(root, bg='#000000')
-top2.geometry("+0+0")
-top2.attributes('-fullscreen', tk.TRUE)
-top2.wm_attributes("-topmost", 1)  # make sure window is on top to start
 
-# big screen
-window = root
-root.option_add('*Dialog.msg.width', 34)
-print("Geo str: " + geo_str)
-window.geometry(geo_str)
-window.title("Forensik Hamburg")
-window.grid_rowconfigure(0, weight=1)
-window.grid_rowconfigure(2, weight=1)
-window.grid_columnconfigure(0, weight=1)
-window.grid_columnconfigure(2, weight=1)
-# window.wm_attributes("-topmost", 1)  # make sure window is on top to start
-window.configure(background=bgDef)
-window.attributes('-fullscreen', True)
+def reset_mouse(event):
+    currentMouseX, currentMouseY = pyautogui.position()
+    pyautogui.moveTo(1025, currentMouseY)
 
-sleep(1)
 
-img_path = "/home/pi/fingerabdruck/img/haftrichter/"
+def authenticate(uid, read_block):
+    rc = 0
+    key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    rc = pn532.mifare_classic_authenticate_block(
+        uid, read_block, MIFARE_CMD_AUTH_A, key)
+    print(rc)
+    return rc
 
 
 def popupmsg(ttl, msg):
@@ -331,6 +250,267 @@ def scan_field():
     return uid
 
 
+def submit_check(event=0):
+    file_path = "/home/pi/fingerabdruck/img/haftrichter/" + lang
+    if check_beweismittel() == 1 and check_person1() == 1 and check_person2() and check_toxisch() == 1:
+        file_name = "_ok.png"
+    elif check_beweismittel() == 2 and check_person1() == 2 and check_person2() and check_toxisch() == 2:
+        file_name = "_hinweis.png"
+    else:
+        file_name = "_falsch.png"
+
+    toplevel = tk.Toplevel()
+    Richter_Bild = tk.PhotoImage(file=file_path + file_name)
+    Richter_Label = tk.Label(toplevel, image=Richter_Bild)
+    Richter_Label.grid()
+    Richter_Label.image = Richter_Bild
+
+
+def check_beweismittel():
+    sols = {
+        "en_1": ["Cup", "Sugar", "Sweetener", "Pills", "Guidebook", "Donut", "Pen"],
+        "de_1": ["Becher", "Zucker", "Süßstoff", "Tabletten", "Reiseführer", "Donut", "Kuli"],
+        "en_2": ["Cup", "Sugar", "Sweetener", "Pills", "Donut", "Guidebook", "Pen"],
+        "de_2": ["Becher", "Zucker", "Süßstoff", "Tabletten", "Donut", "Reiseführer",  "Kuli"],
+    }
+
+    guess = [(b.var).get() for b in beweismittel_list]
+    if guess == sols[lang + "_1"]:
+        var_beweismittel = 1
+    elif sols[lang + "_2"]:
+        var_beweismittel = 2
+    else:
+        var_beweismittel = 0
+    return var_beweismittel
+
+
+def check_person1():
+    sol_1 = ["Eva", "Janine", "Jessica",
+             "Luise", "Johannes", "Jakob", "Jessica"]
+    sol_2 = ["Eva", "Janine", "Jessica",
+             "Luise", "Jakob", "Johannes", "Jessica"]
+    guess = [(p.var).get() for p in person_list_1]
+    if guess == sol_1:
+        var_person1 = 1
+    elif guess == sol_2:
+        var_person1 = 2
+    else:
+        var_person1 = 0
+    return var_person1
+
+
+def check_person2():
+    sol = {
+        "en": ["Julius", "- none -", "Unknown", "- none -", "Unknown", "Unknown", "- none -"],
+        "de": ["Julius", "- kein -", "Unbekannt", "- kein -", "Unbekannt", "Unbekannt", "- kein -"]
+    }
+    guess = [(p.var).get() for p in person_list_2]
+
+    return guess == sol[lang]
+
+
+def check_toxisch():
+    sols = {
+        "de_1": ["Toxisch", "Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Keine Probe", "Nicht toxisch", "Keine Probe"],
+        "en_1": ["toxic", "non toxic", "non toxic", "non toxic", "no sample", "non toxic", "no sample"],
+        "de_2": ["Toxisch", "Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Keine Probe", "Keine Probe"],
+        "en_2": ["toxic", "non toxic", "non toxic", "non toxic", "non toxic", "no sample", "no sample"]
+    }
+    guess = [(t.var).get() for t in toxisch_list]
+
+    if guess == sols[lang + "_1"]:
+        var_toxisch = 1
+    elif guess == sols[lang + "_2"]:
+        var_toxisch = 2
+
+    else:
+        var_toxisch = 0
+    return var_toxisch
+
+# --------------------------------------------
+# ----- Buttons zur Bestätigung der Auswahl --
+# --------------------------------------------
+
+
+def choose_lang(_lang="en"):
+
+    # load language variables
+    if _lang == "en":
+        print("English Load keys")
+    elif _lang == "de":
+        print("German Load values")
+    else:
+        print("Unsupported language")
+        return -1
+
+    ButtonGer.grid_forget()
+    ButtonEn.grid_forget()
+    languageframe.grid_forget()
+    labelHeadline.grid_forget()
+    loginframe.grid(row=1, column=1)
+    bg_img_path = f"/home/pi/fingerabdruck/img/misc/{_lang}_background_hh.png"
+    bg_image = tk.PhotoImage(file=bg_img_path)
+    bg_img = tk.Label(window, image=bg_image)
+    bg_img.grid(row=1, column=1)
+
+    items_list = data["items_list_" + _lang]
+    tox_list = data["tox_list_" + _lang]
+    textSTD = data["select_" + _lang]
+    choose_txt = data["choose_" + _lang]
+    place_txt = data["place_" + _lang]
+    object_txt = data["object_" + _lang]
+    fingerprint_txt = data["fingerprint_" + _lang]
+    unknown_txt = data["unknown_" + _lang]
+    none_txt = data["none_" + _lang]
+    toxicity_txt = data["toxicity_" + _lang]
+    submit_txt = data["submit_" + _lang]
+
+    print("Data loaded successfully")
+
+    # Fundort
+    tk.Label(loginframe, text=place_txt, bg=bgDef, font="HELVETICA 22 bold").grid(
+        row=0, sticky=W+E, padx=tabpadx)
+
+    for i in range(1, 8):
+        tk.Label(loginframe, text=i, bg=bgDef, font="HELVETICA 18 bold").grid(
+            row=i, sticky=W+E, padx=tabpadx)
+
+    # Get Globals
+    global beweismittel, beweismittel_list
+    global person_1, person_list_1
+    global person_2, person_list_2
+    global Toxisch, toxisch_list
+    global lang
+    lang = _lang
+
+    # Objekt
+    beweismittel = tk.Label(loginframe, text=object_txt,
+                            bg=bgDef, font="HELVETICA 22 bold")
+    beweismittel_list = [MyOptionMenu(
+        loginframe, textSTD, *items_list) for _ in range(1, 8)]
+    for i, s in enumerate([beweismittel, *beweismittel_list]):
+        s.grid(row=i, column=1, sticky=W+E, padx=tabpadx)
+
+    # Person 1
+    person_1 = tk.Label(loginframe, text=f"{fingerprint_txt} 1",
+                        bg=bgDef, font="HELVETICA 22 bold")
+    person_list_1 = [MyOptionMenu(
+        loginframe, textSTD, none_txt, *names_list) for _ in range(1, 8)]
+    person_1.grid(row=0, column=2, sticky=W+E, padx=tabpadx)
+    for i, p1 in enumerate(person_list_1):
+        p1.grid(row=i+1, column=2, sticky=W, padx=tabpadx)
+
+    # Person 2
+    person_2 = tk.Label(loginframe, text=f"{fingerprint_txt} 2",
+                        bg=bgDef, font="HELVETICA 22 bold")
+    person_2.grid(row=0, column=3, sticky=W+E, padx=tabpadx)
+    person_list_2 = [MyOptionMenu(
+        loginframe, none_txt, none_txt, unknown_txt, *names_list) for _ in range(1, 8)]
+    for i, p2 in enumerate(person_list_2):
+        p2.grid(row=i+1, column=3, sticky=W, padx=tabpadx)
+     
+    # Toxisch/nicht toxisch
+    Toxisch = tk.Label(loginframe, text=toxicity_txt,
+                       bg=bgDef, font="HELVETICA 22 bold")
+    toxisch_list = [MyOptionMenu(
+        loginframe, choose_txt, *tox_list) for _ in range(1, 8)]
+
+    Toxisch.grid(row=0, column=4, sticky=W+E, padx=tabpadx)
+    for i, t in enumerate(toxisch_list):
+        t.grid(row=i+1, column=4, sticky=W, padx=tabpadx)
+
+    # Buttons 
+    ButtonSend = tk.Button(loginframe, text=submit_txt,
+                           font="HELVETICA 18 bold", command=submit_check, bg='#E2E2E2')
+    ButtonSend.grid(row=8, column=4, sticky=W, padx=tabpadx, pady=20)
+    ButtonScan.grid(row=8, column=1, rowspan=2,
+                    stick=W+E, pady=20, padx=tabpadx)
+    # Activate scanning ability
+    ButtonScan["state"] = tk.ACTIVE
+
+
+# Global Scope Settings
+GPIO.setmode(GPIO.BCM)
+# door lock
+door_lock_pin = 4
+read_block = 4
+
+bgDef = '#F2F2F2'             # Hintergrundfarbe
+tabpadx = 50                  # Spaltenbreite der Einträge
+fontSize = 22                 # Schriftgröße
+
+cards_images = {
+    "BE": "img/fingerabdruck/1-eva_julius-becher.png",
+    "ZK": "img/fingerabdruck/2-janine-zucker.png",
+    "SB": "img/fingerabdruck/3-jessica_carl-suessstoff.png",
+    "TB": "img/fingerabdruck/4-luise-tabletten.png",
+    "DT": "img/fingerabdruck/5-jakob_carl-donut_zigaretten.png",
+    "RF": "img/fingerabdruck/6-johannes_carl-reisefuehrer.png",
+    "KU": "img/fingerabdruck/7-jessica-kuli.png",
+    "VM": "img/fingerabdruck/8-julius_carl_johannes-stevia.png",
+    "unk": "img/fingerabdruck/fingerprint-unknown.png"
+}
+
+img_path = "/home/pi/fingerabdruck/img/haftrichter/"
+
+# I2C connection:
+i2c = busio.I2C(board.SCL, board.SDA)
+
+# Non-hardware reset/request with I2C
+pn532 = PN532_I2C(i2c, debug=False)
+
+ic, ver, rev, support = pn532.firmware_version
+print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
+
+# this delay avoids some problems after wakeup
+sleep(0.5)
+
+# Configure PN532 to communicate with MiFare cards
+pn532.SAM_configuration()
+
+try:
+    with open('dict_en_de.json') as json_file:
+        data = json.loads(json_file.read())
+        names_list = data["names_list"]
+except ValueError as e:
+    print(e)
+    exit()
+
+# Scanner video
+Instance = vlc.Instance()
+media = Instance.media_new('img/scannerfilm_mit_sound.mp4')
+player = Instance.media_player_new()
+player.set_media(media)
+
+root = tk.Tk()
+root.title("Fingerprint scanner")
+scrW = root.winfo_screenwidth()
+scrH = root.winfo_screenheight()
+geo_str = str(scrW) + "x" + str(scrH)
+
+# We will create two screens: one for the interface, one for laser scanner
+# small screen root
+top2 = tk.Toplevel(root, bg='#000000')
+top2.geometry("+0+0")
+top2.attributes('-fullscreen', tk.TRUE)
+top2.wm_attributes("-topmost", 1)  # make sure window is on top to start
+
+# big screen
+window = root
+root.option_add('*Dialog.msg.width', 34)
+print("Geo str: " + geo_str)
+window.geometry(geo_str)
+window.title("Forensik Hamburg")
+window.grid_rowconfigure(0, weight=1)
+window.grid_rowconfigure(2, weight=1)
+window.grid_columnconfigure(0, weight=1)
+window.grid_columnconfigure(2, weight=1)
+# window.wm_attributes("-topmost", 1)  # make sure window is on top to start
+window.configure(background=bgDef)
+window.attributes('-fullscreen', True)
+
+sleep(1)
+
 # ------------------------ Hintergrundbild ------------------------
 bg_image_de = tk.PhotoImage(
     file="/home/pi/fingerabdruck/img/misc/de_background_hh.png")
@@ -368,175 +548,6 @@ labelEnFlag = tk.Label(languageframe, image=englishflag)
 labelEnText = tk.Label(languageframe, text="English",
                        bg=bgDef, font="HELVETICA 30 bold")
 
-# ---------------------------------------
-# ----- Überprüfen der Angaben ----------
-# ---------------------------------------
-
-
-def submit_check(event=0):
-    file_path = "/home/pi/fingerabdruck/img/haftrichter/" + lang
-    if check_beweismittel() == 1 and check_person1() == 1 and check_person2() and check_toxisch() == 1:
-        file_name = "_ok.png"
-    elif check_beweismittel() == 2 and check_person1() == 2 and check_person2() and check_toxisch() == 2:
-        file_name = "_hinweis.png"
-    else:
-        file_name = "_falsch.png"
-    
-    toplevel = tk.Toplevel()
-    Richter_Bild = tk.PhotoImage(file=file_path + file_name)
-    Richter_Label = tk.Label(toplevel, image=Richter_Bild)
-    Richter_Label.grid()
-    Richter_Label.image = Richter_Bild
-
-def check_beweismittel():
-    sols = {
-        "en_1": ["Cup", "Sugar", "Sweetener", "Pills", "Guidebook", "Donut", "Pen"],
-        "de_1": ["Becher", "Zucker", "Süßstoff", "Tabletten", "Reiseführer", "Donut", "Kuli"],
-        "en_2": ["Cup", "Sugar", "Sweetener", "Pills", "Donut", "Guidebook", "Pen"],
-        "de_2": ["Becher", "Zucker", "Süßstoff", "Tabletten", "Donut","Reiseführer",  "Kuli"],
-    }
-
-    guess = [(b.var).get() for b in beweismittel_list]
-    if guess == sols[lang + "_1"]:
-        var_beweismittel = 1
-    elif sols[lang + "_2"]:
-        var_beweismittel = 2
-    else:
-        var_beweismittel = 0
-    return var_beweismittel
-
-
-def check_person1():
-    sol_1 = ["Eva", "Janine", "Jessica", "Luise", "Johannes", "Jakob", "Jessica"]
-    sol_2 = ["Eva", "Janine", "Jessica", "Luise", "Jakob", "Johannes", "Jessica"]
-    guess = [(p.var).get() for p in person_list_1]
-    if guess == sol_1:
-        var_person1 = 1
-    elif guess == sol_2:
-        var_person1 = 2
-    else:
-        var_person1 = 0
-    return var_person1
-
-
-def check_person2():
-    sol = {
-        "en": ["Julius", "- none -", "Unknown", "- none -", "Unknown", "Unknown", "- none -"],
-        "de": ["Julius", "- kein -" , "Unbekannt", "- kein -", "Unbekannt", "Unbekannt", "- kein -"]
-    }
-    guess = [(p.var).get() for p in person_list_2]
-
-    return guess == sol[lang]
-
-
-def check_toxisch():
-    sols = {
-        "de_1": ["Toxisch","Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Keine Probe", "Nicht toxisch","Keine Probe"],
-        "en_1": ["toxic" , "non toxic", "non toxic","non toxic", "no sample","non toxic","no sample"],
-        "de_2": ["Toxisch","Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Nicht toxisch", "Keine Probe","Keine Probe"],
-        "en_2": ["toxic" , "non toxic", "non toxic","non toxic", "non toxic","no sample","no sample"]
-        }
-    guess = [(t.var).get() for t in toxisch_list]   
-    
-    if guess == sols[lang + "_1"]:
-        var_toxisch = 1
-    elif guess == sols[lang + "_2"]:
-        var_toxisch = 2
-
-    else:
-        var_toxisch = 0
-    return var_toxisch
-
-# --------------------------------------------
-# ----- Buttons zur Bestätigung der Auswahl --
-# --------------------------------------------
-
-def choose_lang(event=0, _lang="en"):
-    languageframe.grid_forget()
-    labelHeadline.grid_forget()
-    loginframe.grid(row=1, column=1)
-    bg_image = tk.PhotoImage(
-        file="/home/pi/fingerabdruck/img/misc/" + _lang + "_background_hh.png")
-    bg_img = tk.Label(window, image=bg_image)
-    bg_img.grid(row=1, column=1)
-
-    # load language variables
-    if _lang == "en":
-        print("English Load keys")
-    elif _lang == "de":
-        print("German Load values")
-    else:
-        print("Unsupported language")
-        return -1
-
-    items_list = data["items_list_" + _lang]
-    tox_list = data["tox_list_" + _lang]
-    textSTD = data["select_" + _lang]
-    choose_txt = data["choose_" + _lang]
-    place_txt = data["place_" + _lang]
-    object_txt = data["object_" + _lang]
-    fingerprint_txt = data["fingerprint_" + _lang]
-    unknown_txt = data["unknown_" + _lang]
-    none_txt = data["none_" + _lang]
-    toxicity_txt = data["toxicity_" + _lang]
-    submit_txt = data["submit_" + _lang]
-
-    # Fundort
-    tk.Label(loginframe, text=place_txt, bg=bgDef, font="HELVETICA 22 bold").grid(
-        row=0, sticky=W+E, padx=tabpadx)
-    [tk.Label(loginframe, text=i, bg=bgDef, font="HELVETICA 18 bold").grid(
-        row=i, sticky=W+E, padx=tabpadx) for i in range(1, 8)]
-
-    # Get Globals
-    global beweismittel, beweismittel_list
-    global person_1, person_list_1
-    global person_2, person_list_2
-    global Toxisch, toxisch_list
-    global lang
-    lang = _lang
-
-    # Objekt
-    beweismittel = tk.Label(loginframe, text=object_txt,
-                            bg=bgDef, font="HELVETICA 22 bold")
-    beweismittel_list = [MyOptionMenu(
-        loginframe, textSTD, *items_list) for _ in range(1, 8)]
-    [s.grid(row=i, column=1, sticky=W+E, padx=tabpadx)
-     for i, s in enumerate([beweismittel, *beweismittel_list])]
-
-    # Person 1
-    person_1 = tk.Label(loginframe, text=f"{fingerprint_txt} 1",
-                        bg=bgDef, font="HELVETICA 22 bold")
-    person_list_1 = [MyOptionMenu(loginframe, textSTD, none_txt, *names_list) for _ in range(1, 8)]
-    person_1.grid(row=0, column=2, sticky=W+E, padx=tabpadx)
-    [p1.grid(row=i+1, column=2, sticky=W, padx=tabpadx) for i, p1 in enumerate(person_list_1)]
-
-    # Person 2
-    person_2 = tk.Label(loginframe, text=f"{fingerprint_txt} 2",
-                        bg=bgDef, font="HELVETICA 22 bold")
-    person_2.grid(row=0, column=3, sticky=W+E, padx=tabpadx)
-    person_list_2 = [MyOptionMenu(loginframe, none_txt, none_txt, unknown_txt, *names_list) for _ in range(1, 8)] 
-    [p2.grid(row=i+1, column=3, sticky=W, padx=tabpadx) for i, p2 in enumerate(person_list_2)]
-    
-    # Toxisch/nicht toxisch
-    Toxisch = tk.Label(loginframe, text=toxicity_txt,
-                    bg=bgDef, font="HELVETICA 22 bold")
-    toxisch_list = [MyOptionMenu(loginframe, choose_txt, *tox_list) for _ in range(1,8)]
-
-    Toxisch.grid(row=0, column=4, sticky=W+E, padx=tabpadx)
-    [t.grid(row=i+1, column=4, sticky=W, padx=tabpadx) for i, t in enumerate(toxisch_list)] 
-    
-    ButtonGer.grid_forget()
-    ButtonEn.grid_forget()
-
-    ButtonSend = tk.Button(loginframe, text=submit_txt,
-                          font="HELVETICA 18 bold", command=submit_check, bg='#E2E2E2')
-    ButtonSend.grid(row=8, column=4, sticky=W, padx=tabpadx, pady=20)
-    ButtonScan.grid(row=8, column=1, rowspan=2,
-                    stick=W+E, pady=20, padx=tabpadx)
-    # Activate scanning ability
-    ButtonScan["state"] = tk.ACTIVE
-
-
 # ------ Buttons um zum Hauptbildschirm zu gelangen -------------
 ButtonGer = tk.Button(languageframe, image=germanflag,
                       command=lambda *args: choose_lang("de"))
@@ -561,10 +572,14 @@ if __name__ == "__main__":
     picture_popup = None
 
     # define globals
-    beweismittel, beweismittel_list = None
-    person_1, person_list_1 = None
-    person_2, person_list_2 = None
-    Toxisch, toxisch_list = None
+    beweismittel = tk.Label()
+    person_1 = tk.Label()
+    person_2 = tk.Label()
+    Toxisch = tk.Label()
+    beweismittel_list = []
+    person_list_1 = []
+    person_list_2 = []
+    toxisch_list = []
     lang = "en"
 
     # start door checking thread
