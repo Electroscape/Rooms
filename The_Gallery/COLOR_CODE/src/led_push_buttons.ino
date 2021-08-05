@@ -262,6 +262,7 @@ void checkPassword() {
         printWithHeader("!Correct", relayCode);
 		relay.digitalWrite(REL_SAFE_PIC_PIN, SAFE_VISIBLE);
         oled.println("          Correct");
+        endGame = true;
     } else {
         oled.println("\n      Wrong");
         passwordReset();
