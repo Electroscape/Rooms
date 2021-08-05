@@ -42,9 +42,9 @@ enum REL_PIN {
     REL_EXIT_PIN    // 7 Exit door lock
 };
 enum REL_INIT {
-    REL_LICHT_INIT = 0,  // DESCRIPTION OF THE RELAY WIRING
-    REL_1_INIT = 1,      // NC = Empty | COM = Light +Ve | NO = 230V
-    REL_2_INIT = 1,      // NC = Empty | COM = UV +Ve    | NO = 230V
+    REL_LICHT_INIT = 1,  // DESCRIPTION OF THE RELAY WIRING
+    REL_1_INIT = 0,      // NC = Empty | COM = Light +Ve | NO = 230V
+    REL_2_INIT = 0,      // NC = Empty | COM = UV +Ve    | NO = 230V
     REL_ALARM_INIT = 1,  // DESCRIPTION OF THE RELAY WIRING
     REL_4_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
     REL_5_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
