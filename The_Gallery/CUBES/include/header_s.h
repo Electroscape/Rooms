@@ -8,10 +8,11 @@ String version = "version 1.0ST";
 String brainName = String("BrRFID");
 String relayCode = String("UVL");
 
-#define LIGHT_ON 1
-#define LIGHT_OFF 0
+#define LIGHT_ON 0
+#define LIGHT_OFF 1
 #define MAX485_WRITE HIGH
 #define MAX485_READ LOW
+#define OLED_DISABLE true
 
 // I2C Addresses
 #define LCD_I2C_ADD 0x27    // Predefined by hardware
