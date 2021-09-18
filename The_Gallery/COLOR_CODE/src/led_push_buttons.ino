@@ -184,7 +184,7 @@ void Keypad_Init() {
 void Keypad_Update() {
     MyKeypad.getKey();
 
-    if ((millis() - KeypadActivityTimer) > KeypadCheckingInterval) {
+    if (passLight.evaluate() || (millis() - KeypadActivityTimer) > KeypadCheckingInterval) {
         KeypadActivityTimer = millis();
         if (strlen(passLight.guess) > 1) {
             checkPassword();

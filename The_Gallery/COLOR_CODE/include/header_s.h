@@ -21,7 +21,7 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 
 // Passwort
 // char* sercet_password = (char*)"RGGBWGRBWG";
-char *secret_password = (char *)"RGGBWGRBWG";  // for testing Simple sample password
+char *secret_password = (char *)"RGGBWGRBWG";  
 
 unsigned long KeypadCheckingInterval = 5000;  // Check the password after set time of inactivity
 unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
