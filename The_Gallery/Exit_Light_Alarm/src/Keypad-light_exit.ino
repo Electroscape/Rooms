@@ -179,9 +179,6 @@ void keypadEvent(KeypadEvent eKey) {
                     checkPassword();
                     break;
                 case '*':
-#ifndef OLED_DISABLE
-                    oledHomescreen(&oleds[usedkeypad]);
-#endif
                     passwordReset(usedkeypad);
                     break;
                 default:
