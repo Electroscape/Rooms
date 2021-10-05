@@ -59,7 +59,8 @@ int rfid_last_scan = millis();
 const int rfid_scan_delay = 500;
 const int rfid_ticks_required = 3;
 #endif
-char *compass_status = makeKeymap("COMPASS IN SAFE");
+
+bool compass_status = true;
 
 /*==OLED====================================================================================================*/
 
@@ -105,7 +106,7 @@ unsigned long lastHeartbeat = millis();
 
 /**
     * prints header messages on start
-    * 
+    *
     * @return void
     * @param void void
 */
@@ -117,7 +118,7 @@ void print_serial_header() {
 }
 /**
     * display oled homescreen
-    * 
+    *
     * @return void
     * @param oled (SSD1306AsciiWire *) pointer to oled object
 */
@@ -134,7 +135,7 @@ void oledHomescreen(SSD1306AsciiWire *oled) {
 //=========================================*/
 /**
     * Initialise relay PCF on Smother board
-    * 
+    *
     * @return true on success
     * @param void void
 */
@@ -156,10 +157,10 @@ bool relay_init() {
 //========================================*/
 /**
     * Interrupt based keypad listener
-    * 
+    *
     * @return void
     * @param eKey (KeypadEvent) contains the pressed button
-    * @remarks recheck deprecations! 
+    * @remarks recheck deprecations!
 */
 void keypadEvent(KeypadEvent eKey) {
     // ignore inputs from solved riddles
@@ -204,7 +205,7 @@ void keypadEvent(KeypadEvent eKey) {
 
 /**
     * callback function for keypad press
-    * 
+    *
     * @return void
     * @param eKey (KeypadEvent) the pressed button
 */
@@ -214,7 +215,7 @@ void LightKeypadEvent(KeypadEvent eKey) {
 }
 /**
     * callback function for keypad press
-    * 
+    *
     * @return void
     * @param eKey (KeypadEvent) the pressed button
 */
@@ -224,7 +225,7 @@ void ExitKeypadEvent(KeypadEvent eKey) {
 }
 /**
     * Initialise two keypads
-    * 
+    *
     * @return void
     * @param void void
 */
@@ -241,7 +242,7 @@ bool keypad_init() {
 
 /**
     * Listen to keypad press
-    * 
+    *
     * @return void
     * @param void void
 */
@@ -252,7 +253,7 @@ void keypad_update() {
 }
 /**
     * Clears password and displays oled homescreen
-    * 
+    *
     * @return void
     * @param riddle (int) Which riddle to clear {Light, Exit}
 */
@@ -264,10 +265,10 @@ void passwordReset(int riddle) {
 }
 
 /**
-    * - Checks the password and update the flags 
-    * - Makes relays action and block the game 
+    * - Checks the password and update the flags
+    * - Makes relays action and block the game
     * - Updates the OLEDS
-    * 
+    *
     * @return void
     * @param void void
     * @remarks game is blocked inside at the end
@@ -320,10 +321,18 @@ void checkPassword() {
 //===RFID====================================================================================================
 //==========================================================================================================*/
 
+void print_compass_status() {
+    if (compass_status) {
+        printWithHeader("COMPASS IN SAFE", relayCodes[ALARM_RIDDLE]);
+    } else {
+        printWithHeader("NO COMPASS", relayCodes[ALARM_RIDDLE]);
+    }
+}
+
 #ifndef RFID_DISABLE
 /**
     * Initialise the RFID
-    * 
+    *
     * @return true in success
     * @param void void
 */
@@ -365,11 +374,11 @@ bool RFID_init() {
 
 /**
     * Checks if there is card exist on the RFID or not
-    * 
+    *
     * @return void
     * @param void void
     * @remarks it contains the msg and relays action
-    * @note todo it should only check and return bool 
+    * @note todo it should only check and return bool
 */
 void RFID_alarm_check() {
     uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};
@@ -378,16 +387,16 @@ void RFID_alarm_check() {
 
     if (success) {
         if (rfid_ticks > 0) {
-            compass_status = makeKeymap("COMPASS IN SAFE");
-            printWithHeader(compass_status, relayCodes[ALARM_RIDDLE]);
+            compass_status = true;
+            print_compass_status();
             Serial.print(F("resetting alarm\n"));
             relay.digitalWrite(REL_ALARM_PIN, REL_ALARM_INIT);
         }
         rfid_ticks = 0;
     } else {
         if (rfid_ticks == rfid_ticks_required) {
-            compass_status = makeKeymap("NO COMPASS");
-            printWithHeader(compass_status, relayCodes[ALARM_RIDDLE]);
+            compass_status = false;
+            print_compass_status();
             Serial.print(F("compass removed, activating alarm\n"));
             relay.digitalWrite(REL_ALARM_PIN, !REL_ALARM_INIT);
             rfid_ticks++;
@@ -405,7 +414,7 @@ void RFID_alarm_check() {
 #ifndef OLED_DISABLE
 /**
     * Initialise two OLEDs
-    * 
+    *
     * @return true on success
     * @param void void
 */
@@ -426,7 +435,7 @@ bool oled_init() {
 
 /**
     * Reset password after timeout
-    * 
+    *
     * @return void
     * @param void void
     * @remarks it checks the entered password before clearing it
@@ -462,7 +471,7 @@ void keypad_reset() {
 void setup() {
     brainSerialInit();
     Serial.println("WDT endabled");
-    // wdt_enable(WDTO_8S);
+    wdt_enable(WDTO_8S);
     wdt_reset();
 
     Serial.println("!setup_begin");
@@ -534,7 +543,7 @@ void loop() {
             printWithHeader(passwords[LIGHT_RIDDLE].guess, relayCodes[LIGHT_RIDDLE]);
         if (!endgame[EXIT_RIDDLE]) {
             printWithHeader(passwords[EXIT_RIDDLE].guess, relayCodes[EXIT_RIDDLE]);
-            printWithHeader(compass_status, relayCodes[ALARM_RIDDLE]);
+            print_compass_status();
         }
     }
 }
