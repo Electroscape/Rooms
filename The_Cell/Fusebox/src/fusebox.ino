@@ -12,11 +12,7 @@
  */
 /*==========================================================================================================*/
 
-#define SVERSION        1
-#define HHVERSION       0
-#define BASEVERSION     SVERSION
-
-const String title = String("FUSEBOX S v1.3");
+#include "header_s.h"
 
 /*==INCLUDE=================================================================================================*/
 //Watchdog timer
@@ -36,87 +32,13 @@ const String title = String("FUSEBOX S v1.3");
                                          und byte currentIndex; muessen PUBLIC sein                         */
 
 /*==DEFINE==================================================================================================*/
-#define DEBUG_MODE 					0
-// onBoardLED
-#define ON_BOARD_LED_PIN            13
-#define IGNORE_KEYPAD               0
-// #define LCD_DISABLE     1
-// LED
-// PIN
-enum PWM_PIN {
-    PWM_1_PIN = 3,                           // Predefined by STB design
-    PWM_2_PIN = 5,                           // Predefined by STB design
-    PWM_3_PIN = 6,                           // Predefined by STB design
-    PWM_4_PIN = 9,                           // Predefined by STB design
-};
-// SETTINGS
-// I2C ADRESSES
-#define RELAY_I2C_ADD     	 0x3F         // Relay Expander
-#define OLED_I2C_ADD         0x3C         // Predefined by hardware
-#define LCD_I2C_ADD					 0x27 // Predefined by hardware
-#define KEYPAD_I2C_ADD       0x38         // Keypad
-#define FUSE_I2C_ADD         0x39         // Fuses
 
-// RELAY
-// PIN
-enum REL_PIN{
-  REL_1_PIN ,                              // 0 Fusebox lid
-  REL_2_PIN ,                              // 1 Door opener / Alarm light
-  REL_3_PIN ,                              // 2
-  REL_4_PIN ,                              // 3
-  REL_5_PIN ,                              // 4
-  REL_6_PIN ,                              // 5
-  REL_7_PIN ,                              // 6
-  REL_8_PIN ,                              // 7 12v PS
-  REL_9_PIN ,                              // 8
-  REL_10_PIN,                              // 9
-  REL_11_PIN,                              // 10
-  REL_12_PIN,                              // 11
-  REL_13_PIN,                              // 12
-  REL_14_PIN,                              // 13
-  REL_15_PIN,                              // 14
-  REL_16_PIN                               // 15
-};
-// AMOUNT
-#define REL_AMOUNT               3
 
-// INIT
-enum REL_INIT{
-  REL_1_INIT   =                0,        // COM-12V_IN, NO-12V_OUT, NC-/  set to 1 for magnet, 0 for mechanical
-  REL_2_INIT   =                1,        // COM-12V_IN, NO-12V_OUT_DOOR, NC-12V_OUT_ALARM
-  REL_3_INIT   =                1,        // NC-12V_OUT_ALARM
-  REL_4_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_5_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_6_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_7_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_8_INIT   =                1,        // COM AC_volt, NO 12_PS+, NC-/
-  REL_9_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_10_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_11_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_12_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_13_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_14_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_15_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_16_INIT  =                1         // DESCRIPTION OF THE RELAY WIRING
-};
 
-// INPUT
-enum INPUT_PIN{
-  INPUT_1_PIN,                             //  0 alarm light at the entrance/exit
-  INPUT_2_PIN,                             //  1 trigger for starting the procedure
-  INPUT_3_PIN,                             //  2
-  INPUT_4_PIN,                             //  3
-  INPUT_5_PIN,                             //  4
-  INPUT_6_PIN,                             //  5
-  INPUT_7_PIN,                             //  6
-  INPUT_8_PIN
-};
-// AMOUNT
-#define FUSE_COUNT             5    // same as input_count in older code
 
 /*==CONSTANT VARIABLES======================================================================================*/
-const enum REL_PIN relayPinArray[]  = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN, REL_9_PIN, REL_10_PIN, REL_11_PIN, REL_12_PIN, REL_13_PIN, REL_14_PIN, REL_15_PIN, REL_16_PIN};
-const byte relayInitArray[] = {REL_1_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT, REL_9_INIT, REL_10_INIT, REL_11_INIT, REL_12_INIT, REL_13_INIT, REL_14_INIT, REL_15_INIT, REL_16_INIT};
+const enum REL_PIN relayPinArray[]  = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
+const byte relayInitArray[] = {REL_1_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
 
 const enum INPUT_PIN inputPinArray[]   = {INPUT_1_PIN, INPUT_2_PIN, INPUT_3_PIN, INPUT_4_PIN, INPUT_5_PIN, INPUT_6_PIN, INPUT_7_PIN};
 
@@ -180,7 +102,7 @@ Expander_PCF8574 LetsFixThis;
 // Keypad
 Keypad_I2C MyKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
 // Password
-Password pass_fusebox = Password( "2517" );   // @Abdullah, please check if this is the right code
+Password pass_fusebox = Password(secret_password);   // @Abdullah, please check if this is the right code
 // LCD
 LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
@@ -273,11 +195,9 @@ void loop() {
     }
 
     LCD_Update();
-
     Keypad_Update();
     #endif
 
-    delay(50);
     //wdt_reset();
 }
 
