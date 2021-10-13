@@ -83,7 +83,8 @@ byte  countMiddle = 8;
 byte  keyCount    = countMiddle;
 
 
-
+static int fuse_status = 0;
+static bool locked = true;
 bool UpdateLCD      = true;
 
 unsigned long lastLCDUpdate = 0;
@@ -92,7 +93,6 @@ const unsigned long UpdateLCDAfterDelay = 6000;        /* Refreshing the LCD per
 
 /*==TIMER===================================================================================================*/
 unsigned long lastTimestamp_fuse = 0;
-const unsigned long timespan_fuseCheck = 100;
 
 /*==CONSTRUCTOR=============================================================================================*/
 // PCF8574
@@ -137,9 +137,9 @@ void setup() {
     delay(50);
     if( Keypad_Init() ) {Serial.println("Keypad: ok");	}
 
-    delay(500);
+    delay(50);
     i2c_scanner();
-    delay(500);
+    delay(50);
 
     //Serial.println("WDT endabled");
     //wdt_enable(WDTO_8S);
@@ -161,25 +161,17 @@ void setup() {
 void loop() {
 
     if ((millis() - lastTimestamp_fuse) > timespan_fuseCheck ) {
-
-        if (fuseCheck()) {
-            bool isNoHystersis = true;
-            for (int i=0; i > 5; i++) {
-                if (!fuseCheck()) {
-                    isNoHystersis = false;
-                    break;
-                }
-                delay(10);
-            }
-            if (isNoHystersis) {
-                open_room_door();
-            } else {
-                Serial.println("Hysteresis detected not opening");
-            }
-
-        } else {
+        fuse_status += fuseCheck();
+        // prevent overflows
+        if (fuse_status > fuse_hysteris_margin) {fuse_status = fuse_hysteris_margin;}
+        if (fuse_status < -fuse_hysteris_margin) {fuse_status = -fuse_hysteris_margin;}
+        
+        if (fuse_status > fuse_hysteris_margin && locked) {
+            open_room_door();
+        } else if (fuse_status < -fuse_hysteris_margin && !locked) {
             close_room_door();
         }
+            
         lastTimestamp_fuse = millis();
     }
 
@@ -190,7 +182,7 @@ void loop() {
         if ((millis() - time_lastUnlock) > reset_lockstatus_after) {
             PassWrong = true;
             relay.digitalWrite(REL_1_PIN, REL_1_INIT);
-            delay(100);
+            delay(10);
         }
     }
 
@@ -203,14 +195,10 @@ void loop() {
 
 
 void open_room_door() {
-    if (relay.digitalRead(REL_2_PIN) == REL_2_INIT) {
-        relay.digitalWrite( REL_2_PIN, !REL_2_INIT );
-        delay(100);
-    }
-    if (relay.digitalRead(REL_3_PIN) == REL_3_INIT) {
-        relay.digitalWrite( REL_3_PIN, !REL_3_INIT );
-        delay(100);
-    }
+    relay.digitalWrite( REL_2_PIN, !REL_2_INIT );
+    delay(5);
+    relay.digitalWrite( REL_3_PIN, !REL_3_INIT );
+    delay(5);
     Serial.println("Everything correct, open door");
 }
 
@@ -227,10 +215,9 @@ void close_room_door() {
 /*==FUSES===================================================================================================*/
 bool fuseCheck() {
 
-    delay(10);
+    delay(5);
     // since the exit is faster with the last fuse which are the removed fuses
     // simply reverse the search
-    int ret = 1;
     for (int i=FUSE_COUNT-1; i >= 0; i--) {
         Serial.println("");
         Serial.print("fuseNo"); Serial.print(i);
@@ -242,12 +229,11 @@ bool fuseCheck() {
             Serial.print(i);
             Serial.print("with result: ");
             Serial.println(iFuse.digitalRead(inputPinArray[i]));
-
-            return 0;
+            return -1;
         }
-        delay(15);
+        delay(5);
     }
-    return ret;
+    return 1;
 }
 
 #ifndef LCD_DISABLE
@@ -294,6 +280,7 @@ void LCD_Update() {
             lcd.noBacklight();
         }
     }
+    delay(5);
 }
 
 void LCD_keypadscreen() {
