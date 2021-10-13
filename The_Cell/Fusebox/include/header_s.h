@@ -9,6 +9,9 @@ const unsigned long heartbeatFrequency = 5000;
 
 char *secret_password = (char *)"2517";
 
+const int fuse_hysteris_margin = 3;
+const unsigned long timespan_fuseCheck = 100;
+
 #define DEBUG_MODE 					0
 // onBoardLED
 #define ON_BOARD_LED_PIN            13
