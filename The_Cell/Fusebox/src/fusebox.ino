@@ -72,8 +72,6 @@ unsigned long time_lastUnlock = millis();
 /*==VARIABLES===============================================================================================*/
 
 byte fuseState[FUSE_COUNT];
-bool fuseCorrect = false;      // Fuses that have to be removed
-bool fuseFalse   = false;      // Fuses that have to remain on the sockets
 bool fuseSolutions[] = {0,0,0,0,1};
 
 #define RESTARTTIME 15
@@ -83,6 +81,7 @@ byte  countMiddle = 8;
 byte  keyCount    = countMiddle;
 
 
+// negative is wrong solutions and locked positive is correct solution and open
 static int fuse_status = 0;
 static bool locked = true;
 bool UpdateLCD      = true;
@@ -141,8 +140,7 @@ void setup() {
     i2c_scanner();
     delay(50);
 
-    //Serial.println("WDT endabled");
-    //wdt_enable(WDTO_8S);
+    close_room_door();
 
     Serial.println("!setup_end");
 
@@ -162,15 +160,16 @@ void loop() {
 
     if ((millis() - lastTimestamp_fuse) > timespan_fuseCheck ) {
         fuse_status += fuseCheck();
-        // prevent overflows
-        if (fuse_status > fuse_hysteris_margin) {fuse_status = fuse_hysteris_margin;}
-        if (fuse_status < -fuse_hysteris_margin) {fuse_status = -fuse_hysteris_margin;}
 
+        // positive opens negative closes
         if (fuse_status > fuse_hysteris_margin && locked) {
             open_room_door();
         } else if (fuse_status < -fuse_hysteris_margin && !locked) {
             close_room_door();
         }
+        // prevent overflows
+        if (fuse_status > fuse_hysteris_margin) {fuse_status = fuse_hysteris_margin;}
+        if (fuse_status < -fuse_hysteris_margin) {fuse_status = -fuse_hysteris_margin;}
 
         lastTimestamp_fuse = millis();
     }
@@ -195,17 +194,23 @@ void loop() {
 
 
 void open_room_door() {
+    delay(5);
     relay.digitalWrite( REL_2_PIN, !REL_2_INIT );
     delay(5);
     relay.digitalWrite( REL_3_PIN, !REL_3_INIT );
     delay(5);
     Serial.println("Everything correct, open door");
+    locked = false;
 }
 
 
 void close_room_door() {
+    delay(5);
     relay.digitalWrite( REL_2_PIN, REL_2_INIT );
+    delay(5);
     relay.digitalWrite( REL_3_PIN, REL_3_INIT );
+    delay(5);
+    locked = true;
 }
 
 /*============================================================================================================
@@ -213,7 +218,7 @@ void close_room_door() {
 //==========================================================================================================*/
 
 /*==FUSES===================================================================================================*/
-bool fuseCheck() {
+int fuseCheck() {
 
     delay(5);
     // since the exit is faster with the last fuse which are the removed fuses
@@ -340,50 +345,29 @@ void Keypad_Update() {
 void keypadEvent(KeypadEvent eKey) {
     Serial.println("Event Happened");
     lcd.backlight();
- switch( MyKeypad.getState() ) {
- 	 case PRESSED:
- 		 Serial.print("Taste: "); Serial.print(eKey); Serial.print(" -> Code: "); Serial.print(pass_fusebox.guess); Serial.println(eKey);
- 		 KeypadTyping = true;
-		 UpdateLCD = true;
+    switch( MyKeypad.getState() ) {
+        case PRESSED:
+            Serial.print("Taste: "); Serial.print(eKey); Serial.print(" -> Code: "); Serial.print(pass_fusebox.guess); Serial.println(eKey);
+            KeypadTyping = true;
+            UpdateLCD = true;
 
- 		 switch (eKey) {
-
-       case '#': Serial.println("Hash Not Used");
-					  break;
-			 case '*': Serial.println("cleared");
-    		 			passwordReset();
-    					if (PassWrong) {
-    						keyCount = countMiddle;
-    						lcd.clear();
-     						lcd.setCursor(6,1);
-     						lcd.print("CLEARED");
-     						delay(750);
-     						LCD_homescreen();
-    					}
-					  break;
-            default:
-                if (PassWrong) { pass_fusebox.append(eKey);}
-            break;
- 		 }
- 		 break;
-
- 	case HOLD:
- 		Serial.print("HOLD: ");	Serial.println(eKey);
- 		switch (eKey){
-      case '7':
-#if DEBUG_MODE
-        blink_onBoardled(200);
-        for (int z = 1; z<10; z++) {
-            Serial.println(z);
-            delay(1000);
-        };
-#endif
-      break;
- 			case '*': software_Reset();
- 			break;
-    	}
-    	break;
- 	}
+            switch (eKey) {
+                case '#': Serial.println("Hash Not Used"); break;
+                case '*':
+                    Serial.println("cleared");
+                    passwordReset();
+                    if (PassWrong) {
+                        keyCount = countMiddle;
+                        lcd.clear();
+                        lcd.setCursor(6,1);
+                        lcd.print("CLEARED");
+                        delay(750);
+                        LCD_homescreen();
+                    } break;
+                default: if (PassWrong) { pass_fusebox.append(eKey);} break;
+            }
+        break;
+    }
 }
 
 void checkPassword() {
