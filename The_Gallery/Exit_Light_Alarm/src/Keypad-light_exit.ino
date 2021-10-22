@@ -123,11 +123,13 @@ void print_serial_header() {
     * @param oled (SSD1306AsciiWire *) pointer to oled object
 */
 void oledHomescreen(SSD1306AsciiWire *oled) {
+    delay(2);
     oled->clear();
     oled->setFont(Adafruit5x7);
     oled->print("\n\n\n");
     oled->setFont(Verdana12_bold);
-    oled->println("  Type your code..");
+    oled->println("  Enter code..");
+    delay(2);
 }
 
 /*=========================================
@@ -184,14 +186,16 @@ void keypadEvent(KeypadEvent eKey) {
                 default:
                     passwords[usedkeypad].append(eKey);
                     printWithHeader(passwords[usedkeypad].guess, relayCodes[usedkeypad]);
-#ifndef OLED_DISABLE
-                    oleds[usedkeypad].clear();
-                    oleds[usedkeypad].setFont(Adafruit5x7);
-                    oleds[usedkeypad].print("\n\n\n");
-                    oleds[usedkeypad].setFont(Verdana12_bold);
-                    oleds[usedkeypad].print("         ");
-                    oleds[usedkeypad].println(passwords[usedkeypad].guess);
-#endif
+                    #ifndef OLED_DISABLE
+                        delay(2);
+                        oleds[usedkeypad].clear();
+                        oleds[usedkeypad].setFont(Adafruit5x7);
+                        oleds[usedkeypad].print("\n\n\n");
+                        oleds[usedkeypad].setFont(Verdana12_bold);
+                        oleds[usedkeypad].print("         ");
+                        oleds[usedkeypad].println(passwords[usedkeypad].guess);
+                        delay(2);
+                    #endif
                     break;
             }
             break;
@@ -280,11 +284,13 @@ void checkPassword() {
     if (passwords[usedkeypad].evaluate()) {
         printWithHeader("!Correct", relayCodes[usedkeypad]);
 #ifndef OLED_DISABLE
+        delay(2);
         oleds[usedkeypad].clear();
         oleds[usedkeypad].setFont(Adafruit5x7);
         oleds[usedkeypad].print("\n\n\n");
         oleds[usedkeypad].setFont(Verdana12_bold);
         oleds[usedkeypad].println("   ACCESS GRANTED!");
+        delay(2);
 #endif
         //0.1 sec delay between correct msg and relay switch
         delay(100);
@@ -305,7 +311,9 @@ void checkPassword() {
     } else {
         printWithHeader("!Wrong", relayCodes[usedkeypad]);
 #ifndef OLED_DISABLE
+        delay(2);
         oleds[usedkeypad].println("    ACCESS DENIED!");
+        delay(2);
 #endif
         // Wait to show wrong for a second
         delay(1000);
@@ -378,6 +386,7 @@ bool RFID_init() {
     * @note todo it should only check and return bool
 */
 void RFID_alarm_check() {
+    delay(2);
     uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};
     uint8_t uidLength;
     uint8_t success = RFID_READERS[0].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
@@ -401,6 +410,7 @@ void RFID_alarm_check() {
             rfid_ticks++;
         }
     }
+    delay(2);
 }
 #endif
 
