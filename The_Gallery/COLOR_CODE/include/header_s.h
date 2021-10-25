@@ -23,8 +23,8 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 // char* sercet_password = (char*)"RGGBWGRBWG";
 char *secret_password = (char *)"RGGBWGRBWG";  
 
-unsigned long KeypadCheckingInterval = 5000;  // Check the password after set time of inactivity
-unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
+unsigned long keypadCheckingInterval = 8000;  // Check the password after set time of inactivity
+unsigned int keypadDebounceTime = 50;      // Time for debouncing resolution
 
 const int oledUpdateInterval = 10000;  // time between refreshing of the oled
 

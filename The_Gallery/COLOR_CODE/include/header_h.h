@@ -21,8 +21,8 @@ const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 // Passwort
 char* secret_password = (char*)"OULR";  // Simple sample password
 
-unsigned long KeypadCheckingInterval = 5000;  // Zeit bis Codereset
-unsigned int KeypadDebounceTime = 50;      // Time for debouncing resolution
+unsigned long keypadCheckingInterval = 5000;  // Zeit bis Codereset
+unsigned int keypadDebounceTime = 50;      // Time for debouncing resolution
 
 const int oledUpdateInterval = 10000;  // time between refreshing of the oled
 

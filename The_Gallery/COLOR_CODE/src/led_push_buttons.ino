@@ -46,8 +46,7 @@ byte KeypadColPins[KEYPAD_COLS] = {0, 1, 2, 3};  // Spalten - Steuerleitungen (a
 bool KeypadCodeCorrect = false;
 bool KeypadCodeWrong = false;
 bool endGame = false;                    // Only true when correct solution after smiley face
-unsigned long KeypadActivityTimer = millis();  // ResetTimer
-const int OledWaitLastCharacter = 500;   // waiting time to show last character
+unsigned long keypadActivityTimer = millis();  // ResetTimer
 
 Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins,
                     KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
@@ -115,14 +114,14 @@ void OLED_Init() {
     oled.set400kHz();
     oled.setScroll(true);
     oled.setFont(Arial_bold_14);
-    oled.println("\n\n\n   booting....");
+    oled.println("\n\n   booting.... \n   farbcode");
 }
 
 void OLED_Update() {
     if (((millis() - oledLastUpdate) < oledUpdateInterval)) { return;}
 
     oledLastUpdate = millis();
-    if (strlen(passLight.guess) < 1) {
+    if (strlen(passLight.guess) >= 1) {
         OLED_showPass();
     } else {
         OLED_Idlescreen();
@@ -172,7 +171,7 @@ void Keypad_Init() {
     MyKeypad.addEventListener(keypadEvent);  // Event Listener erstellen
     MyKeypad.begin(makeKeymap(KeypadKeys));
     MyKeypad.setHoldTime(5000);
-    MyKeypad.setDebounceTime(KeypadDebounceTime);
+    MyKeypad.setDebounceTime(keypadDebounceTime);
 }
 
 /**
@@ -184,9 +183,9 @@ void Keypad_Init() {
 void Keypad_Update() {
     MyKeypad.getKey();
 
-    if (passLight.evaluate() || (millis() - KeypadActivityTimer) > KeypadCheckingInterval) {
-        KeypadActivityTimer = millis();
-        if (strlen(passLight.guess) > 1) {
+    if (passLight.evaluate() || (millis() - keypadActivityTimer) > keypadCheckingInterval) {
+        keypadActivityTimer = millis();
+        if (strlen(passLight.guess) >= 1) {
             checkPassword();
         } else {
             OLED_Idlescreen();
@@ -204,7 +203,7 @@ void keypadEvent(KeypadEvent eKey) {
     switch (MyKeypad.getState()) {
         case PRESSED:
             UpdateOLED = true;
-            KeypadActivityTimer = millis();
+            keypadActivityTimer = millis();
 
             switch (eKey) {
                 default:
@@ -260,6 +259,7 @@ bool relay_init() {
 void checkPassword() {
     if (passLight.evaluate()) {
         printWithHeader("!Correct", relayCode);
+        delay(4000);
 		relay.digitalWrite(REL_SAFE_PIC_PIN, SAFE_VISIBLE);
         oled.println("          Correct");
         endGame = true;
