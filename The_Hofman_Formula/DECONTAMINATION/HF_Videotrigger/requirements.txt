@@ -1,0 +1,11 @@
+# in case pycharm is bitching or you use another editor
+# pip3 install -r requirements.txt
+
+RPi
+
+# from the main logger files
+requests
+paramiko
+
+# optionals
+moviepy
