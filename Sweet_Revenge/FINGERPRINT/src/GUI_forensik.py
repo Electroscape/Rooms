@@ -11,10 +11,32 @@ from threading import Thread
 import vlc
 import pyautogui
 
+import argparse
+import gc
+import json
+from functions import *
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
+
+gc.collect()
+
+argparser = argparse.ArgumentParser(
+    description='Carls Office')
+
+argparser.add_argument(
+    '-c',
+    '--city',
+    help='name of the city: [hh / s]')
+
+args = argparser.parse_args()
+city = args.city
+riddle_solved = False
+
+with open('config.json', 'r', encoding='utf8') as config_file:
+    config = json.load(config_file)
+
 # door lock
-door_lock_pin = 4
+door_lock_pin = config["general"].get("door_lock_pin", 4)
 
 # I2C connection:
 i2c = busio.I2C(board.SCL, board.SDA)

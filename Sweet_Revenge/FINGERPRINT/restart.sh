@@ -1,3 +1,7 @@
+sudo pkill python
+
 export DISPLAY=:0
+xhost +
 xinput map-to-output "Logitech USB Optical Mouse" "HDMI-2"
-python3 GUI_forensik.py
+
+bash ~/FINGERPRINT/start.sh
