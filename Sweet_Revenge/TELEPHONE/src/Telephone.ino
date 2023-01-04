@@ -63,29 +63,30 @@ enum PWM_PIN {
 // RELAY
 // PIN
 enum REL_PIN {
-    REL_8_PIN,      // 0 Door Opener
-    BUZZER_PIN,     // 1 Buzzer
+    DOOR_LOCK_PIN,
+    REL_2_PIN,
     REL_3_PIN,      // 2
     REL_4_PIN,      // 3
     REL_5_PIN,      // 4
     REL_6_PIN,      // 5
-    REL_7_PIN,      // 6
-    DOOR_LOCK_PIN,  // 7
+    BUZZER_12V_PIN,      // 0 Door Opener
+    BUZZER_5V_PIN,     // 1 Buzzer
 };
+
 // AMOUNT
-#define REL_AMOUNT 2
+#define REL_AMOUNT 8
 #define REL_MAX 8
 
 // INIT
 enum REL_INIT {
-    REL_8_INIT = 0,      // COM-12V_IN, NO-12V_OUT, NC-/
-    BUZZER_INIT = 1,     // COM-12V_IN, NO-12V_OUT_DOOR, NC-12V_OUT_ALARM
+    DOOR_LOCK_INIT = 0,  // DESCRIPTION OF THE RELAY WIRING
+    REL_2_INIT = 1,      // COM-12V_IN, NO-12V_OUT, NC-/
     REL_3_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
     REL_4_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
     REL_5_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
     REL_6_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
-    REL_7_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
-    DOOR_LOCK_INIT = 0,  // DESCRIPTION OF THE RELAY WIRING
+    // REL_7_INIT = 1,      // DESCRIPTION OF THE RELAY WIRING
+    BUZZER_INIT = 1,     // COM-12V_IN, NO-12V_OUT_DOOR, NC-12V_OUT_ALARM
 };
 
 // INPUT
@@ -103,8 +104,8 @@ enum INPUT_PIN {
 #define INPUT_AMOUNT 2
 
 /*==CONSTANT VARIABLES======================================================================================*/
-const enum REL_PIN relayPinArray[] = {DOOR_LOCK_PIN, BUZZER_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
-const byte relayInitArray[] = {DOOR_LOCK_INIT, BUZZER_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT};
+const enum REL_PIN relayPinArray[] = {DOOR_LOCK_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, BUZZER_5V_PIN, BUZZER_12V_PIN};
+const byte relayInitArray[] = {DOOR_LOCK_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, BUZZER_INIT, BUZZER_INIT};
 const enum INPUT_PIN inputPinArray[] = {PHONE_PICKUP_PIN, COIN_DETECTOR_PIN, INPUT_3_PIN, INPUT_4_PIN, INPUT_5_PIN, INPUT_6_PIN, INPUT_7_PIN};
 
 /*==KEYPAD I2C==============================================================================================*/
@@ -157,11 +158,15 @@ Expander_PCF8574 inputs;
 // Keypad
 Keypad_I2C MyKeypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
 // Password
-Password pass_tele_num = Password(makeKeymap("44243"));
+char* taxi_number = (char*)"86753489";
+Password pass_tele_num = Password(makeKeymap(taxi_number));
 // LCD
 LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 // Servo
 Servo_I2C myservo;
+
+unsigned long lastKeypadAction = millis();
+unsigned long keypadTimeout = 5000;
 
 // AUDIO
 // NeoSWSerial altSerial( 8, 9 );
@@ -192,8 +197,9 @@ void setup() {
     if (relay_Init()) {
         Serial.println("Relay:   ok");
     }
+    Serial.print(F("Inputs..."));
     if (input_Init()) {
-        Serial.println("Inputs:  ok");
+        Serial.println("ok");
     }
     if (keypad_Init()) {
         Serial.println("Keypad: ok");
@@ -223,18 +229,25 @@ void loop() {
         while (1) {
             wdt_reset();
             Keypad_Update();
+            if (millis() - lastKeypadAction > keypadTimeout) {
+                checkPassword();
+            }
             LCD_Update();
             if (!noTaxi && coinCheck() && !EndGame) {
                 wdt_reset();
                 relay.digitalWrite(DOOR_LOCK_PIN, !DOOR_LOCK_INIT);
                 Serial.println("Everything correct, open door");
-                relay.digitalWrite(BUZZER_PIN, !BUZZER_INIT);
+                relay.digitalWrite(BUZZER_5V_PIN, !BUZZER_INIT);
+                relay.digitalWrite(BUZZER_12V_PIN, !BUZZER_INIT);
                 delay(300);
-                relay.digitalWrite(BUZZER_PIN, BUZZER_INIT);
+                relay.digitalWrite(BUZZER_5V_PIN, BUZZER_INIT);
+                relay.digitalWrite(BUZZER_12V_PIN, BUZZER_INIT);
                 delay(150);
-                relay.digitalWrite(BUZZER_PIN, !BUZZER_INIT);
+                relay.digitalWrite(BUZZER_5V_PIN, !BUZZER_INIT);
+                relay.digitalWrite(BUZZER_12V_PIN, !BUZZER_INIT);
                 delay(1000);
-                relay.digitalWrite(BUZZER_PIN, BUZZER_INIT);
+                relay.digitalWrite(BUZZER_5V_PIN, BUZZER_INIT);
+                relay.digitalWrite(BUZZER_12V_PIN, BUZZER_INIT);
                 EndGame = true;
             }
             if (!inputs.digitalRead(PHONE_PICKUP_PIN)) {
@@ -563,7 +576,7 @@ void Keypad_Update() {
 
     MyKeypad.getKey();
 
-    if (strlen((pass_tele_num.guess)) == 5 && noTaxi) {
+    if (strlen((pass_tele_num.guess)) == strlen(taxi_number) && noTaxi) {
         Serial.println("5 Zeichen eingebeben - ueberpruefe Passwort");
         checkPassword();
         Serial.println("Check password Done");
@@ -572,7 +585,7 @@ void Keypad_Update() {
 
 void keypadEvent(KeypadEvent eKey) {
     Serial.println("Event Happened");
-
+    lastKeypadAction = millis();
     coin_timerDelay = millis();
     switch (MyKeypad.getState()) {
         case PRESSED:
@@ -621,6 +634,7 @@ void keypadEvent(KeypadEvent eKey) {
 
 void checkPassword() {
     // Show last digit on LCD
+    if (strlen(pass_tele_num.guess) == 0) {return;}
     UpdateLCD = true;
     LCD_Update();
     delay(500);
@@ -729,7 +743,7 @@ bool relay_Init() {
     relay.begin(RELAY_I2C_ADD);
     for (int i = 0; i < REL_MAX; i++) {
         relay.pinMode(i, OUTPUT);
-        // relay.digitalWrite(i, HIGH);
+        relay.digitalWrite(i, HIGH);
     }
 
     // delay(1000);
