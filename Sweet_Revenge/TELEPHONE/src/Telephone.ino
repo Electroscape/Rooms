@@ -10,7 +10,7 @@
  */
 /*==========================================================================================================*/
 
-const String title = String("Telephone v1.5");
+const String title = String("Telephone v2.0");
 
 /*==INCLUDE=================================================================================================*/
 #include <Wire.h> /* TWI / I2C                                                          */
@@ -63,14 +63,14 @@ enum PWM_PIN {
 // RELAY
 // PIN
 enum REL_PIN {
-    DOOR_LOCK_PIN,
+    BUZZER_5V_PIN,     // 1 Buzzer
+    BUZZER_12V_PIN,      // 0 Door Opener
     REL_2_PIN,
     REL_3_PIN,      // 2
     REL_4_PIN,      // 3
     REL_5_PIN,      // 4
     REL_6_PIN,      // 5
-    BUZZER_12V_PIN,      // 0 Door Opener
-    BUZZER_5V_PIN,     // 1 Buzzer
+    DOOR_LOCK_PIN,
 };
 
 // AMOUNT
@@ -181,12 +181,10 @@ void setup() {
     wdt_disable();
     Serial.begin(115200);
     Serial.println();
-    Serial.println("==============Sweet Revange 12.08.2019=============");
+    Serial.println("==============Tatort 26.06.2023=============");
     Serial.println();
     Serial.println("===================SETUP=====================");
     Serial.println();
-
-    i2c_scanner();
     
     if (lcd_Init()) {
         Serial.println("LCD:     ok");
@@ -577,7 +575,7 @@ void Keypad_Update() {
     MyKeypad.getKey();
 
     if (strlen((pass_tele_num.guess)) == strlen(taxi_number) && noTaxi) {
-        Serial.println("5 Zeichen eingebeben - ueberpruefe Passwort");
+        Serial.println("ueberpruefe Passwort");
         checkPassword();
         Serial.println("Check password Done");
     }
@@ -743,7 +741,8 @@ bool relay_Init() {
     relay.begin(RELAY_I2C_ADD);
     for (int i = 0; i < REL_MAX; i++) {
         relay.pinMode(i, OUTPUT);
-        relay.digitalWrite(i, HIGH);
+        // makes the door open for a secoond on restart
+        // relay.digitalWrite(i, HIGH);
     }
 
     // delay(1000);
