@@ -1,6 +1,6 @@
 /*==========================================================================================================*/
 /*		2CP - TeamEscape - Engineering
- *		by Abdullah Saei & Robert Schloezer
+ *		by Abdullah Saei & Seif Elbouhy
  *
  *		v2.5
  *		- Adding Debug mode
@@ -54,44 +54,28 @@ enum PWM_PIN{
 // RELAY
 // PIN
 enum REL_PIN{
-  REL_1_PIN ,                              // 0 Control box lid
-  REL_2_PIN ,                              // 1 Buzzer
-  REL_3_PIN ,                              // 2 Cell Door lock and button's light
   REL_4_PIN ,                              // 3
   REL_5_PIN ,                              // 4
   REL_6_PIN ,                              // 5
   REL_7_PIN ,                              // 6
   REL_8_PIN ,                              // 7
-  REL_9_PIN ,                              // 8
-  REL_10_PIN,                              // 9
-  REL_11_PIN,                              // 10
-  REL_12_PIN,                              // 11
-  REL_13_PIN,                              // 12
-  REL_14_PIN,                              // 13
-  REL_15_PIN,                              // 14
-  REL_16_PIN                               // 15
+  REL_3_PIN ,                              // 2 Cell Door lock and button's light
+  REL_2_PIN ,                              // 1 Buzzer
+  REL_1_PIN ,                              // 0 Control box lid
 };
 // AMOUNT
-#define REL_AMOUNT               3
+#define REL_AMOUNT               8
 
 // INIT
 enum REL_INIT{
-  REL_1_INIT   =                0,        // COM-12V_IN, NO-2*12V-OUT-lockers, NC-/
-  REL_2_INIT   =                1,        // COM-12V_IN, NO-12V_OUT_DOOR, NC-SWITCH_LIGHT/
-  REL_3_INIT   =                1,        // COM-9V_IN, NO-9V_OUT_BUZZER, NC-/
   REL_4_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
   REL_5_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
   REL_6_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
   REL_7_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
   REL_8_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_9_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_10_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_11_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_12_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_13_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_14_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_15_INIT  =                1,        // DESCRIPTION OF THE RELAY WIRING
-  REL_16_INIT  =                1         // DESCRIPTION OF THE RELAY WIRING
+  REL_3_INIT   =                1,        // COM-9V_IN, NO-9V_OUT_BUZZER, NC-/
+  REL_2_INIT   =                1,        // COM-12V_IN, NO-12V_OUT_DOOR, NC-SWITCH_LIGHT/
+  REL_1_INIT   =                0        // COM-12V_IN, NO-2*12V-OUT-lockers, NC-/
 };
 
 // INPUT
@@ -109,8 +93,8 @@ enum INPUT_PIN{
 #define INPUT_AMOUNT             1
 
 /*==CONSTANT VARIABLES======================================================================================*/
-const enum REL_PIN relayPinArray[]  = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN, REL_9_PIN, REL_10_PIN, REL_11_PIN, REL_12_PIN, REL_13_PIN, REL_14_PIN, REL_15_PIN, REL_16_PIN};
-const byte relayInitArray[] = {REL_1_INIT, REL_2_INIT, REL_3_INIT, REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT, REL_9_INIT, REL_10_INIT, REL_11_INIT, REL_12_INIT, REL_13_INIT, REL_14_INIT, REL_15_INIT, REL_16_INIT};
+const enum REL_PIN relayPinArray[]  = {REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN, REL_3_PIN, REL_2_PIN, REL_1_PIN};
+const byte relayInitArray[] = {REL_4_INIT, REL_5_INIT, REL_6_INIT, REL_7_INIT, REL_8_INIT, REL_3_INIT, REL_2_INIT, REL_1_INIT};
 
 const enum INPUT_PIN inputPinArray[]   = {INPUT_1_PIN, INPUT_2_PIN, INPUT_3_PIN, INPUT_4_PIN, INPUT_5_PIN, INPUT_6_PIN, INPUT_7_PIN};
 
@@ -119,8 +103,8 @@ const byte KEYPAD_ROWS            = 4;
 const byte KEYPAD_COLS            = 3;
 const byte KEYPAD_CODE_LENGTH     = 4;
 const byte KEYPAD_CODE_LENGTH_MAX = 7;
-const byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Measure
-const byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Control wires (alternating HIGH)
+byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Measure
+byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Control wires (alternating HIGH)
 
 const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
   {'1','2','3'},
@@ -160,7 +144,7 @@ Expander_PCF8574 iButton;
 // Keypad
 Keypad_I2C MyKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
 // Password
-Password passDoor = Password( "4176" );          // To unlock the Terminal button
+Password passDoor = Password( (char*)"4176" );          // To unlock the Terminal button
 // LCD
 LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
@@ -171,7 +155,7 @@ LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 void setup() {
 	wdt_disable();
   Serial.begin(115200);
-  Serial.println(); Serial.println("==============Schaltpult 17.06.2019=============");
+  Serial.println(); Serial.println("==============Schaltpult 25.09.2023=============");
 	Serial.println(); Serial.println("===================SETUP====================="); Serial.println();
 
   if( lcd_Init() 		)	{Serial.println("LCD:     ok");	}
@@ -271,7 +255,7 @@ void LCD_Update(){
 
 void LCD_keypadscreen() {
   if( doorClosed ) {
-    for ( int i=0; i<strlen((passDoor.guess)); i++ ) {
+    for ( uint i=0; i<strlen((passDoor.guess)); i++ ) {
         lcd.setCursor(8+i,1); lcd.print(passDoor.guess[i]);
         if ( i == 11 ) {break;}
 		}
@@ -367,6 +351,10 @@ void keypadEvent(KeypadEvent eKey){
  			break;
     	}
     	break;
+    case IDLE:
+    break;
+    case RELEASED:
+    break;
  	}
 }
 
@@ -445,14 +433,14 @@ bool Keypad_Init() {
 bool relay_Init() {
   relay.begin(RELAY_I2C_ADD);
 
-  for (int i=0; i<REL_AMOUNT; i++) {
+  for (uint i=5; i<REL_AMOUNT; i++) {
      relay.pinMode(i, OUTPUT);
      relay.digitalWrite(i, HIGH);
   }
 
   delay(3000);
 
-  for (int i=0; i<REL_AMOUNT; i++) {
+  for (int i=5; i<REL_AMOUNT; i++) {
      relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
      Serial.print("     ");
    	 Serial.print("Relay ["); Serial.print(relayPinArray[i]); Serial.print("] set to "); Serial.println(relayInitArray[i]);
@@ -469,7 +457,7 @@ bool relay_Init() {
 //==========================================================================================================*/
 void print_logo_infos(String progTitle) {
   Serial.println(F("+-----------------------------------+"));
-  Serial.println(F("|    TeamEscape HH&S ENGINEERING    |"));
+  Serial.println(F("|    Electroscape HH&S ENGINEERING    |"));
   Serial.println(F("+-----------------------------------+"));
   Serial.println();
   Serial.println(progTitle);
@@ -509,7 +497,7 @@ void i2c_scanner() {
   delay(500);
 }
 
-void blink_onBoardled(uint8_t delay_ms){
+void blink_onBoardled(uint16_t delay_ms){
 	pinMode(ON_BOARD_LED_PIN, OUTPUT);
 	digitalWrite(ON_BOARD_LED_PIN, HIGH);
 	delay(delay_ms);

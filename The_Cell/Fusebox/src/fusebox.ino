@@ -1,6 +1,6 @@
 /*==========================================================================================================*/
 /*		2CP - TeamEscape - Engineering
- *		by Abdullah Saei & Martin Pek
+ *		by Abdullah Saei & Martin Pek & Seif Elbouhy
  *
  *		v1.2b
  *		- removed WDG
@@ -114,7 +114,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println("!header_begin");
     delay(50);
-    Serial.println(); Serial.println("==============FuseBox 20.08.2019=============");
+    Serial.println(); Serial.println("==============FuseBox 25.09.2023=============");
     Serial.println(); Serial.println("===================SETUP=====================");
     Serial.println("==SV1.3==");
     Serial.println("==no hystersis protection==");
@@ -476,7 +476,7 @@ bool relay_Init() {
 
     delay(100);
     //relay.pinMode(REL_8_PIN, OUTPUT);
-    relay.digitalWrite(REL_8_PIN, !REL_8_INIT);
+    //relay.digitalWrite(REL_8_PIN, !REL_8_INIT);
 
     Serial.println("12V Peripheral Power Supply ON");
 
@@ -488,7 +488,7 @@ bool relay_Init() {
 //==========================================================================================================*/
 void print_logo_infos(String progTitle) {
     Serial.println(F("+-----------------------------------+"));
-    Serial.println(F("|    TeamEscape HH&S ENGINEERING    |"));
+    Serial.println(F("|    Electroscape HH&S ENGINEERING    |"));
     Serial.println(F("+-----------------------------------+"));
     Serial.println();
     Serial.println(progTitle);

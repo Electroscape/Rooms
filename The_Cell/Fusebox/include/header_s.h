@@ -47,7 +47,7 @@ enum REL_PIN {
   REL_8_PIN ,                              // 7 12v PS
 };
 // AMOUNT
-#define REL_AMOUNT               3
+#define REL_AMOUNT               2
 
 // INIT
 enum REL_INIT {
