@@ -1,8 +1,10 @@
+// NOT INCLUDED NOT USED
 #pragma once
+// NOT INCLUDED NOT USED
 
-String title = "CE_ST_Fusebox";
-String versionDate = "10.05.2021";
-String version = "version 1.0ST";
+String title = "CE_HH_Fusebox";
+String versionDate = "27.12.2023";
+String version = "version 1.0HH";
 String brainName = String("BrFUSE");
 String relayCode = String("FUS");
 const unsigned long heartbeatFrequency = 5000;
@@ -74,3 +76,5 @@ enum INPUT_PIN{
 };
 // AMOUNT
 #define FUSE_COUNT             5    // same as input_count in older code
+
+#endif

@@ -1,18 +1,16 @@
 /*==========================================================================================================*/
-/*		2CP - TeamEscape - Engineering
- *		by Abdullah Saei & Martin Pek & Seif Elbouhy
+/*		2CP - Electroscape - Engineering
+ *		by Abdullah Saei & Robert
  *
- *		v1.2b
- *		- removed WDG
- *		- 07.08.2019
- *		- For magnet
- *      - 12v PS starts 5 seconds after electronics
- *      - Standby added for LCD + PWreset
-        - simplification on fusecheck
+ *		v1.1
+ *		- Adding watchdog
+ *		- 26.02.2019
+ *		- For Magnet lock
+ *    - 12v PS starts 5 seconds after electronics
  */
 /*==========================================================================================================*/
 
-#include "header_s.h"
+const String title = String("FUSEBOX v1.0");
 
 /*==INCLUDE=================================================================================================*/
 //Watchdog timer
@@ -32,9 +30,69 @@
                                          und byte currentIndex; muessen PUBLIC sein                         */
 
 /*==DEFINE==================================================================================================*/
+#define DEBUG_MODE 					0
+// onBoardLED
+#define ON_BOARD_LED_PIN            13
+// LED
+// PIN
+enum PWM_PIN{
+  PWM_1_PIN = 3,                           // Predefined by STB design
+  PWM_2_PIN = 5,                           // Predefined by STB design
+  PWM_3_PIN = 6,                           // Predefined by STB design
+  PWM_4_PIN = 9,                           // Predefined by STB design
+};
+// SETTINGS
+#define LED_STRIP WS2812B                 // Type of LED Strip, predefined by STB design
+#define MAX_DIMENSION ((kMatrixWidth>kMatrixHeight) ? kMatrixWidth : kMatrixHeight) // if w > h -> MAX_DIMENSION=kMatrixWidth, else MAX_DIMENSION=kMatrixHeight
+#define NUM_LEDS (kMatrixWidth * kMatrixHeight)
 
+// I2C ADDRESSES
+#define RELAY_I2C_ADD     	 0x3F         // Relay Expander
+#define OLED_I2C_ADD         0x3C         // Predefined by hardware
+#define LCD_I2C_ADD					 0x27         // Predefined by hardware
+#define KEYPAD_I2C_ADD       0x38         // Fusebox door
+#define FUSE_I2C_ADD         0x39         // Fuses
 
+// RELAY
+// PIN
+enum REL_PIN{
+  REL_1_PIN ,                              // 0 Fusebox lid
+  REL_2_PIN ,                              // 1 Door opener / Alarm light
+  REL_3_PIN ,                              // 2
+  REL_4_PIN ,                              // 3
+  REL_5_PIN ,                              // 4
+  REL_6_PIN ,                              // 5
+  REL_7_PIN ,                              // 6
+  REL_8_PIN                                // 7 12v PS
+};
+// AMOUNT
+#define REL_AMOUNT               2
 
+// INIT
+enum REL_INIT{
+  REL_1_INIT   =                1,        // COM-12V_IN, NO-12V_OUT, NC-/
+  REL_2_INIT   =                1,        // COM-12V_IN, NO-12V_OUT_DOOR, NC-12V_OUT_ALARM
+  REL_3_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
+  REL_4_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
+  REL_5_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
+  REL_6_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
+  REL_7_INIT   =                1,        // DESCRIPTION OF THE RELAY WIRING
+  REL_8_INIT   =                1         // COM AC_volt, NO 12_PS+, NC-/
+};
+
+// INPUT
+enum INPUT_PIN{
+  INPUT_1_PIN,                             //  0 fuse off 
+  INPUT_2_PIN,                             //  1 fuse off
+  INPUT_3_PIN,                             //  2 fuse off
+  INPUT_4_PIN,                             //  3 fuse off
+  INPUT_5_PIN,                             //  4 fuses on
+  INPUT_6_PIN,                             //  5
+  INPUT_7_PIN,                             //  6
+  INPUT_8_PIN
+};
+// AMOUNT
+#define INPUT_AMOUNT             5
 
 /*==CONSTANT VARIABLES======================================================================================*/
 const enum REL_PIN relayPinArray[]  = {REL_1_PIN, REL_2_PIN, REL_3_PIN, REL_4_PIN, REL_5_PIN, REL_6_PIN, REL_7_PIN, REL_8_PIN};
@@ -47,8 +105,8 @@ const byte KEYPAD_ROWS            = 4;
 const byte KEYPAD_COLS            = 3;
 const byte KEYPAD_CODE_LENGTH     = 4;
 const byte KEYPAD_CODE_LENGTH_MAX = 7;
-const byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Measure
-const byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Control wires (alternating HIGH)
+byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3}; 	// Measure
+byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};    	// Control wires (alternating HIGH)
 
 const char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
   {'1','2','3'},
@@ -61,47 +119,40 @@ bool KeypadTyping       = false;
 bool KeypadCodeCorrect  = false;
 bool KeypadCodeWrong    = false;
 
-const unsigned long keypadStandbyTime = 5000;           // disabled backlight after this amount of incactivity
+const int  KeypadWaitAfterCodeInput = 500;    // time for showing the entered code until it's checked
 
 /*==Password================================================================================================*/
 bool passwordCheckup = false;
-bool PassWrong     = true;
-const unsigned long reset_lockstatus_after = 15000;
-unsigned long time_lastUnlock = millis();
 
 /*==VARIABLES===============================================================================================*/
-
-byte fuseState[FUSE_COUNT];
-bool fuseSolutions[] = {0,0,0,0,1};
-
-#define RESTARTTIME 15
+byte fuseState[INPUT_AMOUNT];
+bool fuseCorrect = false;      // Fuses that have to be removed
+bool fuseFalse   = false;      // Fuses that have to remain on the sockets
+bool fuseChange  = false;      // Changes in the fuse status
 
 /*==LCD=====================================================================================================*/
 byte  countMiddle = 8;
 byte  keyCount    = countMiddle;
 
-
-// negative is wrong solutions and locked positive is correct solution and open
-static int fuse_status = 0;
-static bool locked = true;
+bool PassWrong     = true;
 bool UpdateLCD      = true;
 
-unsigned long lastLCDUpdate = 0;
-const unsigned long UpdateLCDAfterDelay = 6000;        /* Refreshing the LCD periodically */
-
+unsigned long UpdateLCDAfterDelayTimer = 0;
+const unsigned long UpdateLCDAfterDelay = 5000;        /* Refreshing the LCD periodically */
 
 /*==TIMER===================================================================================================*/
-static unsigned long lastTimestamp_fuse = 0;
+unsigned long lastTimestamp_fuse = 0;
+const unsigned long timespan_fuseCheck = 100;
 
 /*==CONSTRUCTOR=============================================================================================*/
 // PCF8574
 Expander_PCF8574 relay;
 Expander_PCF8574 iFuse;
-Expander_PCF8574 LetsFixThis;
+
 // Keypad
 Keypad_I2C MyKeypad( makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_I2C_ADD, PCF8574);
 // Password
-Password pass_fusebox = Password(secret_password);   // @Abdullah, please check if this is the right code
+Password pass_fusebox = Password( (char*)"2517" );   // @Abdullah, please check if this is the right code
 // LCD
 LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
@@ -110,107 +161,54 @@ LiquidCrystal_I2C lcd(LCD_I2C_ADD, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 //===SETUP====================================================================================================
 //==========================================================================================================*/
 void setup() {
-    //wdt_disable();
-    Serial.begin(115200);
-    Serial.println("!header_begin");
-    delay(50);
-    Serial.println(); Serial.println("==============FuseBox 25.09.2023=============");
-    Serial.println(); Serial.println("===================SETUP=====================");
-    Serial.println("==SV1.3==");
-    Serial.println("==no hystersis protection==");
-    Serial.println("==IGNORE_KEYPADSTATE==");
-    Serial.println(IGNORE_KEYPAD);
-    Serial.println("!header_end");
+  wdt_disable();
+  Serial.begin(115200);
+  Serial.println(); Serial.println("==============FuseBox 27.12.2023=============");
+  Serial.println(); Serial.println("===================SETUP====================="); Serial.println();
 
-    Serial.println();
+  if( lcd_Init() 		)	{Serial.println("LCD:     ok");	}
+  if( relay_Init() 	)	{Serial.println("Relay:   ok");	}
+  if( input_Init()  ) {Serial.println("Inputs:  ok"); }
+  if( Keypad_Init() ) {Serial.println("Keypad: ok");	}
 
-    Serial.println("!setup_begin");
+  delay(500);
+  i2c_scanner();
+  delay(500);
 
-    // i2c_scanner();
+  Serial.println("WDT enabled");
+  wdt_enable(WDTO_8S);
 
-    if( lcd_Init() 		)	{Serial.println("LCD:     ok");	}
-    delay(50);
-    if( relay_Init() 	)	{Serial.println("Relay:   ok");	}
-    delay(50);
-    if( input_Init()  ) {Serial.println("Inputs:  ok"); }
-    delay(50);
-    if( Keypad_Init() ) {Serial.println("Keypad: ok");	}
-
-    delay(50);
-    i2c_scanner();
-    delay(50);
-
-    close_room_door();
-
-    Serial.println("!setup_end");
-
-    blink_onBoardled(500);
-    Serial.println(); Serial.println("===================START====================="); Serial.println();
-#if IGNORE_KEYPAD
-    LCD_correct();
-#endif
+  //power on peripherals
+  relay.digitalWrite(REL_8_PIN, !REL_8_INIT);
+   
+  blink_onBoardLed(500);
+  Serial.println("fuses current status");
+  for( int i=0; i<5; i++ ) {
+    Serial.print(fuseState[i]);
+  }
+  Serial.println(); Serial.println("===================START====================="); Serial.println();
 }
 
 
 /*============================================================================================================
 //===LOOP=====================================================================================================
 //==========================================================================================================*/
-
 void loop() {
 
-    if ((millis() - lastTimestamp_fuse) > timespan_fuseCheck ) {
-        fuse_status += fuseCheck();
+  if ( (millis() - lastTimestamp_fuse) > timespan_fuseCheck ) {
+    if(fuseCheck() ) {
+      relay.digitalWrite( REL_2_PIN, !REL_2_INIT );
+      Serial.println("Everything correct, open door");
+      }
+      else {
+        relay.digitalWrite( REL_2_PIN, REL_2_INIT );
+      }
 
-        // positive opens negative closes
-        if (fuse_status > fuse_hysteris_margin && locked) {
-            open_room_door();
-        } else if (fuse_status < -fuse_hysteris_margin && !locked) {
-            close_room_door();
-        }
-        // prevent overflows
-        if (fuse_status > fuse_hysteris_margin) {fuse_status = fuse_hysteris_margin;}
-        if (fuse_status < -fuse_hysteris_margin) {fuse_status = -fuse_hysteris_margin;}
-
-        lastTimestamp_fuse = millis();
-    }
-
-    #ifndef LCD_DISABLE
-
-    // periodically resetting the lock status if unlocked
-    if (!PassWrong) {
-        if ((millis() - time_lastUnlock) > reset_lockstatus_after) {
-            PassWrong = true;
-            relay.digitalWrite(REL_1_PIN, REL_1_INIT);
-            delay(10);
-        }
-    }
-
-    LCD_Update();
-    Keypad_Update();
-    #endif
-
-    //wdt_reset();
-}
-
-
-void open_room_door() {
-    delay(5);
-    relay.digitalWrite( REL_2_PIN, !REL_2_INIT );
-    delay(5);
-    relay.digitalWrite( REL_3_PIN, !REL_3_INIT );
-    delay(5);
-    Serial.println("Everything correct, open door");
-    locked = false;
-}
-
-
-void close_room_door() {
-    delay(5);
-    relay.digitalWrite( REL_2_PIN, REL_2_INIT );
-    delay(5);
-    relay.digitalWrite( REL_3_PIN, REL_3_INIT );
-    delay(5);
-    locked = true;
+    lastTimestamp_fuse = millis();
+  }
+  wdt_reset();
+  LCD_Update();
+  Keypad_Update();
 }
 
 /*============================================================================================================
@@ -218,92 +216,105 @@ void close_room_door() {
 //==========================================================================================================*/
 
 /*==FUSES===================================================================================================*/
-int fuseCheck() {
-
-    delay(5);
-    // since the exit is faster with the last fuse which are the removed fuses
-    // simply reverse the search
-    for (int i=FUSE_COUNT-1; i >= 0; i--) {
-        Serial.println("");
-        Serial.print("fuseNo"); Serial.print(i);
-        Serial.print("with result: ");
-        Serial.println(iFuse.digitalRead(inputPinArray[i]));
-        Serial.println("");
-        if (iFuse.digitalRead(inputPinArray[i]) != fuseSolutions[i]) {
-            Serial.print("incorrect fuse installed at slot: ");
-            Serial.print(i);
-            Serial.print("with result: ");
-            Serial.println(iFuse.digitalRead(inputPinArray[i]));
-            return -1;
-        }
-        delay(5);
+bool fuseCheck() {
+  for( int i=0; i<5; i++ ) {
+#if DEBUG_MODE
+  Serial.print(fuseState[i]);
+#endif
+    if( fuseState[i] != iFuse.digitalRead( inputPinArray[i] ) ) {
+      fuseState[i] = iFuse.digitalRead( inputPinArray[i] );
+      fuseChange = true;
     }
-    return 1;
-}
-
-#ifndef LCD_DISABLE
-/*==LCD=====================================================================================================*/
-void LCD_Update() {
-
-	if ( (( (millis() - lastLCDUpdate) > UpdateLCDAfterDelay)) && !KeypadTyping) { UpdateLCD = true; Serial.println("LCD refresh"); }
-
-	if (UpdateLCD) {
-
-		if (PassWrong) LCD_homescreen();
-		lastLCDUpdate = millis();
-		UpdateLCD = false;
-		Serial.println("UpdateLCD");
-#if DEBUG_MODE == 2
-		Serial.println(KeypadTyping);
-		Serial.println(KeypadCodeCorrect);
-		Serial.println(KeypadCodeWrong);
+  }
+#if DEBUG_MODE
+  Serial.println();
+#elif DEBUG_MODE == 2
+  Serial.println();
+  delay(500);
 #endif
 
-		if (KeypadTyping) {
-            lcd.backlight();
-			LCD_keypadscreen();
-		} else if (KeypadCodeCorrect) {
-			LCD_correct();
-            input_Init();
-            delay(100);
-            relay.digitalWrite(REL_1_PIN, !REL_1_INIT);
-            Serial.println( "Fusebox open" );
-            delay(100);
-			KeypadCodeCorrect = false;
-		} else if (KeypadCodeWrong) {
-			LCD_wrong();
-			UpdateLCD = true;
-			KeypadCodeWrong = false;
-		} else {
-            if(PassWrong) LCD_homescreen();
-        }
-
-	} else {
-        if (millis() - lastLCDUpdate > keypadStandbyTime) {
-            passwordReset();
-            if(PassWrong) LCD_homescreen();
-            lcd.noBacklight();
-        }
+  if( fuseChange ) {
+    Serial.println("fuses changed");
+    for( int i=0; i<5; i++ ) {
+      Serial.print(fuseState[i]);
     }
-    delay(5);
+    Serial.println();
+    if( !fuseState[0] && !fuseState[1] && !fuseState[2] && !fuseState[3] ) {
+      fuseCorrect = true;
+      Serial.println("Correct fuses removed");
+    }
+    else{
+      fuseCorrect = false;
+    }
+
+    if( fuseState[4] ) {
+      fuseFalse = true;
+      Serial.println("False fuses installed");
+    }
+    else{
+      fuseFalse = false;
+    }
+    fuseChange = false;
+  }
+  if ( fuseCorrect && fuseFalse ) {
+    return true;
+  }
+  return 0;
+}
+
+/*==LCD=====================================================================================================*/
+void LCD_Update(){
+	static unsigned int counterLCD = 0;
+
+		if ( (( (millis() - UpdateLCDAfterDelayTimer) > UpdateLCDAfterDelay)) && !KeypadTyping) { UpdateLCD = true; Serial.println("LCD refresh"); }
+
+		if (UpdateLCD) {
+			if(PassWrong) LCD_homescreen();
+			UpdateLCDAfterDelayTimer = millis();
+			UpdateLCD = false;
+#if DEBUG_MODE == 2
+			Serial.println(KeypadTyping);
+			Serial.println(KeypadCodeCorrect);
+			Serial.println(KeypadCodeWrong);
+#endif
+			Serial.print("UpdateLCD "); Serial.println(counterLCD);
+			if (KeypadTyping) {
+				LCD_keypadscreen();
+			}
+			else if (KeypadCodeCorrect) {
+				LCD_correct();
+        delay(250);
+        relay.digitalWrite(REL_1_PIN, !REL_1_INIT);
+        Serial.println( "Fusebox open" );
+				KeypadCodeCorrect = false;
+			}
+			else if (KeypadCodeWrong) {
+				LCD_wrong();
+				UpdateLCD = true;
+				KeypadCodeWrong = false;
+			}
+			else {
+        if(PassWrong) LCD_homescreen(); }
+			counterLCD++;
+		}
 }
 
 void LCD_keypadscreen() {
-    if( PassWrong ) {
-        for ( uint i=0; i<strlen((pass_fusebox.guess)); i++ ) {
-            lcd.setCursor(8+i,1); lcd.print(pass_fusebox.guess[i]);
-            if ( i == 11 ) {break;}
-        }
-    }
+  if( PassWrong ) {
+    for ( uint i=0; i<strlen((pass_fusebox.guess)); i++ ) {
+        lcd.setCursor(8+i,1); lcd.print(pass_fusebox.guess[i]);
+        if ( i == 11 ) {break;}
+		}
+	}
 }
 
 void LCD_homescreen() {
-    lcd.clear();
-    lcd.home();
-    lcd.setCursor(4,0);
-    lcd.print("Enter  Code");
-    lcd.setCursor(0,3);
-    lcd.print("* - Clear");
+	lcd.clear();
+	lcd.home();
+	lcd.setCursor(4,0);
+	lcd.print("Enter  Code");
+	lcd.setCursor(0,3);
+  lcd.print("* - Clear");
 }
 
 void LCD_correct(){
@@ -324,50 +335,72 @@ void LCD_wrong(){
 	delay(1000);
 }
 
-
 /*==KEYPAD==================================================================================================*/
 void Keypad_Update() {
-    MyKeypad.getKey();
+  MyKeypad.getKey();
 
-    if(strlen((pass_fusebox.guess))== 4 && PassWrong) {
-        Serial.println("4 Zeichen eingebeben - ueberpruefe Passwort");
-        keyCount = countMiddle;
-        UpdateLCD = true;
-        passwordCheckup = true;
-        LCD_Update();
-        delay(500);
-        checkPassword();
-        Serial.println("Check password Done");
-    }
+	if(strlen((pass_fusebox.guess))== 4 && PassWrong){
+		Serial.println("4 Zeichen eingebeben - ueberpruefe Passwort");
+    keyCount = countMiddle;
+		UpdateLCD = true;
+		passwordCheckup = true;
+		LCD_Update();
+    delay(500);
+		checkPassword();
+		Serial.println("Check password Done");
+	}
 }
 
 
-void keypadEvent(KeypadEvent eKey) {
-    Serial.println("Event Happened");
-    lcd.backlight();
-    switch( MyKeypad.getState() ) {
-        case PRESSED:
-            Serial.print("Taste: "); Serial.print(eKey); Serial.print(" -> Code: "); Serial.print(pass_fusebox.guess); Serial.println(eKey);
-            KeypadTyping = true;
-            UpdateLCD = true;
+void keypadEvent(KeypadEvent eKey){
+ Serial.println("Event Happened");
+ switch( MyKeypad.getState() ) {
+ 	 case PRESSED:
+ 		 Serial.print("Taste: "); Serial.print(eKey); Serial.print(" -> Code: "); Serial.print(pass_fusebox.guess); Serial.println(eKey);
+ 		 KeypadTyping = true;
+		 UpdateLCD = true;
 
-            switch (eKey) {
-                case '#': Serial.println("Hash Not Used"); break;
-                case '*':
-                    Serial.println("cleared");
-                    passwordReset();
-                    if (PassWrong) {
-                        keyCount = countMiddle;
-                        lcd.clear();
-                        lcd.setCursor(6,1);
-                        lcd.print("CLEARED");
-                        delay(750);
-                        LCD_homescreen();
-                    } break;
-                default: if (PassWrong) { pass_fusebox.append(eKey);} break;
-            }
-        break;
-    }
+ 		 switch (eKey){
+
+       case '#': Serial.println("Hash Not Used");
+					  break;
+			 case '*': Serial.println("cleared");
+			 			passwordReset();
+						if (PassWrong){
+							keyCount = countMiddle;
+							lcd.clear();
+	 						lcd.setCursor(6,1);
+	 						lcd.print("CLEARED");
+	 						delay(750);
+	 						LCD_homescreen();
+						}
+					  break;
+			 default:  pass_fusebox.append(eKey);
+					  break;
+ 		 }
+ 		 break;
+
+ 	case HOLD:
+ 		Serial.print("HOLD: ");	Serial.println(eKey);
+ 		switch (eKey){
+      case '0':
+#if DEBUG_MODE
+        blink_onBoardLed(200);
+        for(int z =1; z<10; z++)
+        {	Serial.println(z);
+          delay(1000);
+        };
+#endif
+      break;
+ 			case '*': software_Reset();
+ 			break;
+    	}
+    	break;
+    case IDLE:
+    break;
+    case RELEASED:
+    break;
+ 	}
 }
 
 void checkPassword() {
@@ -377,10 +410,11 @@ void checkPassword() {
 		UpdateLCD = true;
 		passwordCheckup = false;
         PassWrong = false;
-        time_lastUnlock = millis();
+
         Serial.println( "Correct password" );
 		passwordReset();
-	} else {
+	}
+	else {
 		KeypadCodeWrong = true;
 		KeypadTyping = false;
 		UpdateLCD = true;
@@ -394,10 +428,10 @@ void checkPassword() {
 void passwordReset() {
 	KeypadTyping = false;
 	UpdateLCD = true;
+
 	pass_fusebox.reset();
 	Serial.println( "Password reset" );
 }
-#endif
 
 /*============================================================================================================
 //===INIT=====================================================================================================
@@ -405,20 +439,11 @@ void passwordReset() {
 
 /*==INPUTS==================================================================================================*/
 bool input_Init() {
-    delay(5);
-    LetsFixThis.begin(FUSE_I2C_ADD);
-    for (int i=0; i<=7; i++) {
-        LetsFixThis.pinMode(i, INPUT);
-        LetsFixThis.digitalWrite(i, HIGH);
-    }
-    delay(100);
-    iFuse.begin(FUSE_I2C_ADD);
-    delay(5);
-    for (int i=0; i < FUSE_COUNT; i++) {
-        iFuse.pinMode(inputPinArray[i], INPUT);
-        fuseState[i] = iFuse.digitalRead(inputPinArray[i]);
-        delay(5);
-    }
+  iFuse.begin(FUSE_I2C_ADD);
+  for( int i=0; i<INPUT_AMOUNT; i++ ) {
+    iFuse.pinMode(inputPinArray[i], INPUT);
+    fuseState[i] = 0;
+  }
   return true;
 }
 
@@ -428,7 +453,7 @@ bool lcd_Init() {
 	lcd.setCursor(0,1);
 	lcd.print("Starting...");
 
-	for (int i =0; i<2; i++) {
+	for (int i =0; i<2; i++){
 		delay(500);
 		lcd.noBacklight();
 		delay(500);
@@ -436,10 +461,6 @@ bool lcd_Init() {
 	}
 
 	LCD_homescreen();
-#if IGNORE_KEYPAD
-    lcd.noBacklight();
-    lcd.print("");
-#endif
 
 	return true;
 }
@@ -447,13 +468,6 @@ bool lcd_Init() {
 /*===KEYPAD=================================================================================================*/
 bool Keypad_Init() {
 	MyKeypad.addEventListener(keypadEvent);    // Event Listener erstellen
-    delay(10);
-    LetsFixThis.begin(FUSE_I2C_ADD);
-    for (int i=0; i<=7; i++) {
-     LetsFixThis.pinMode(i, INPUT);
-     LetsFixThis.digitalWrite(i, HIGH);
-    }
-    delay(100);
 	MyKeypad.begin( makeKeymap(KeypadKeys) );
 	MyKeypad.setHoldTime(5000);
 	MyKeypad.setDebounceTime(20);
@@ -463,74 +477,72 @@ bool Keypad_Init() {
 
 /*===MOTHER=================================================================================================*/
 bool relay_Init() {
+  relay.begin(RELAY_I2C_ADD);
+  for (int i=0; i<REL_AMOUNT; i++) {
+     relay.pinMode(i, OUTPUT);
+     relay.digitalWrite(i, HIGH);
+  }
 
-    relay.begin(RELAY_I2C_ADD);
+  delay(500);
 
-    for (int i=0; i<REL_AMOUNT; i++) {
-        relay.pinMode(i, OUTPUT);
-        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
-        // we dont set the pins signal, we do a silent restart and check conditions in the loop
-        delay(100);
-    }
+  for (int i=0; i<REL_AMOUNT; i++) {
+     relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
+     Serial.print("     ");
+   	 Serial.print("Relay ["); Serial.print(relayPinArray[i]); Serial.print("] set to "); Serial.println(relayInitArray[i]);
+   	 delay(20);
+  }
 
+  Serial.println();
 
-    delay(100);
-    //relay.pinMode(REL_8_PIN, OUTPUT);
-    //relay.digitalWrite(REL_8_PIN, !REL_8_INIT);
-
-    Serial.println("12V Peripheral Power Supply ON");
-
-    return true;
+	return true;
 }
 
 /*============================================================================================================
 //===BASICS===================================================================================================
 //==========================================================================================================*/
 void print_logo_infos(String progTitle) {
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println(F("|    Electroscape HH&S ENGINEERING    |"));
-    Serial.println(F("+-----------------------------------+"));
-    Serial.println();
-    Serial.println(progTitle);
-    Serial.println();
-    delay(750);
+  Serial.println(F("+-----------------------------------+"));
+  Serial.println(F("|   Electroscape HH&S ENGINEERING   |"));
+  Serial.println(F("+-----------------------------------+"));
+  Serial.println();
+  Serial.println(progTitle);
+  Serial.println();
+  delay(750);
 }
 
 void i2c_scanner() {
-    Serial.println (F("I2C scanner:"));
-    Serial.println (F("Scanning..."));
-    byte wire_device_count = 0;
+  Serial.println (F("I2C scanner:"));
+  Serial.println (F("Scanning..."));
+  byte wire_device_count = 0;
 
-    for (byte i = 8; i < 120; i++) {
-        Wire.beginTransmission (i);
-
-        if (Wire.endTransmission () == 0) {
-            Serial.print   (F("Found address: "));
-            Serial.print   (i, DEC);
-            Serial.print   (F(" (0x"));
-            Serial.print   (i, HEX);
-            Serial.print (F(")"));
-            if (i == 39) Serial.print(F(" -> LCD"));
-            if (i == 56) Serial.print(F(" -> LCD-I2C-Board"));
-            if (i == 57) Serial.print(F(" -> Input-I2C-board"));
-            if (i == 60) Serial.print(F(" -> Display"));
-            if (i == 63) Serial.print(F(" -> Relay"));
-            Serial.println();
-            wire_device_count++;
-            delay (1);
-        }
+  for (byte i = 8; i < 120; i++) {
+    Wire.beginTransmission (i);
+    if (Wire.endTransmission () == 0) {
+      Serial.print   (F("Found address: "));
+      Serial.print   (i, DEC);
+      Serial.print   (F(" (0x"));
+      Serial.print   (i, HEX);
+      Serial.print (F(")"));
+      if (i == 39) Serial.print(F(" -> LCD"));
+      if (i == 56) Serial.print(F(" -> LCD-I2C-Board"));
+      if (i == 57) Serial.print(F(" -> Input-I2C-board"));
+      if (i == 60) Serial.print(F(" -> Display"));
+      if (i == 63) Serial.print(F(" -> Relay"));
+      Serial.println();
+      wire_device_count++;
+      delay (1);
     }
+  }
+  Serial.print   (F("Found "));
+  Serial.print   (wire_device_count, DEC);
+  Serial.println (F(" device(s)."));
 
-    Serial.print   (F("Found "));
-    Serial.print   (wire_device_count, DEC);
-    Serial.println (F(" device(s)."));
+  Serial.println();
 
-    Serial.println();
-
-    delay(500);
+  delay(500);
 }
 
-void blink_onBoardled(uint8_t delay_ms){
+void blink_onBoardLed(uint16_t delay_ms){
 	pinMode(ON_BOARD_LED_PIN, OUTPUT);
 	digitalWrite(ON_BOARD_LED_PIN, HIGH);
 	delay(delay_ms);
@@ -543,20 +555,17 @@ void blink_onBoardled(uint8_t delay_ms){
 
 void software_Reset() {
 #if DEBUG_MODE
-    Serial.println(F("Restarting in"));
-    for (byte i = RESTARTTIME; i>0; i--) {
-        //wdt_reset();
-        Serial.println(i);
-        delay(1000);
-    }
+  Serial.println(F("Restarting in"));
+  delay(250);
+  for (byte i = 3; i>0; i--) {
+    Serial.println(i);
+    delay(100);
+  }
 #endif
-    blink_onBoardled(50);
-    asm volatile ("  jmp 0");
+	blink_onBoardLed(50);
+  asm volatile ("  jmp 0");
 }
 
-/*
-ISR(WDT_vect)
-{
-	blink_onBoardled(50);
+ISR(WDT_vect) {
+	blink_onBoardLed(50);
 }
-*/
